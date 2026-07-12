@@ -1,7 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { asyncHandler, apiResponse } from '../helpers';
 import { authenticate } from '../middleware/auth';
 import { adminBasicAuth } from '../middleware/adminAuth';
+import { config } from '../config';
 import { pool } from '../database';
 import { logger } from '../logger';
 import { getScanner } from '../services/scanner';
@@ -9,13 +11,62 @@ import { getCleaner } from '../services/cleaner';
 
 const router = Router();
 
-// All admin routes require authentication — support Basic Auth, cookie session, and JWT
+// Simple in-memory token store for admin sessions (survives single process restart)
+const adminSessions = new Map<string, number>();
+const TOKEN_TTL = 12 * 60 * 60 * 1000; // 12 hours
+
+function setAdminCookie(res: Response): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  adminSessions.set(token, Date.now());
+  res.cookie('admin_token', token, {
+    httpOnly: true,
+    secure: false, // set to true in production with HTTPS
+    sameSite: 'lax',
+    maxAge: TOKEN_TTL,
+    path: '/',
+  });
+  return token;
+}
+
+/**
+ * POST /api/v2/admin/login
+ * No auth — validates username/password, sets cookie token
+ */
+router.post(
+  '/login',
+  asyncHandler(async (req, res) => {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      return res.status(400).json(apiResponse(null, 'username and password required', -1));
+    }
+    if (username === config.admin.username && password === config.admin.password) {
+      setAdminCookie(res);
+      return res.json(apiResponse({ redirect: '/admin' }));
+    }
+    return res.status(401).json(apiResponse(null, 'Invalid credentials', -1));
+  })
+);
+
+/**
+ * GET /api/v2/admin/logout
+ */
+router.get('/logout', (_req, res) => {
+  res.clearCookie('admin_token', { path: '/' });
+  res.json(apiResponse(null));
+});
+
+// ── Auth middleware for everything below ──
 function adminAuth(req: Request, res: Response, next: NextFunction): void {
-  // Cookie session from /admin page login
+  // Cookie token session
+  const token = req.cookies?.admin_token;
+  if (token && adminSessions.has(token)) {
+    return next();
+  }
+  // Legacy admin_session cookie
   if (req.cookies?.admin_session === 'valid') {
     return next();
   }
-  // Basic Auth header (direct API access or browser prompt)
+  // Basic Auth header (API access)
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Basic ')) {
     adminBasicAuth(req, res, next);

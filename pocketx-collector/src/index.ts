@@ -7,7 +7,6 @@ import { logger } from './logger';
 import { migrateEventCollectorTables } from './services/migration';
 import { BlockScanner, getScanner } from './services/scanner';
 import { DataCleaner } from './services/cleaner';
-import { adminBasicAuth } from './middleware/adminAuth';
 import adminRoutes from './routes/adminRoutes';
 import dataRoutes from './routes/dataRoutes';
 import dotenv from 'dotenv';
@@ -25,12 +24,32 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'pocketx-collector' });
 });
 
-// Admin panel — serve HTML with Basic Auth
-app.get('/admin', adminBasicAuth, (_req, res) => {
+// Auth helpers for admin page access
+function getAdminToken(req: any): string | null {
+  return req.cookies?.admin_token || null;
+}
+function isAdminAuthed(req: any): boolean {
+  return !!(getAdminToken(req));
+}
+
+// Admin login page
+app.get('/admin/login', (_req, res) => {
   const fs = require('fs');
-  let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin.html'), 'utf8');
+  let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'login.html'), 'utf8');
   res.setHeader('Cache-Control', 'no-store');
   res.type('html').send(html);
+});
+
+// Admin panel — check cookie, redirect to login if not authed
+app.get('/admin', (req, res) => {
+  if (isAdminAuthed(req)) {
+    const fs = require('fs');
+    let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin.html'), 'utf8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.type('html').send(html);
+  } else {
+    res.redirect('/admin/login');
+  }
 });
 
 // Admin API
