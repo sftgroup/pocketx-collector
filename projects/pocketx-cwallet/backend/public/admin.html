@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX Admin — RPC & Collector</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1419; color: #e7e9ea; min-height: 100vh; }
+.header { background: #1d2329; border-bottom: 1px solid #2f3336; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+.header .status { display: flex; gap: 12px; align-items: center; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.green { background: #00ba7c; }
+.dot.yellow { background: #f4b400; }
+.dot.red { background: #e0245e; }
+.main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #2f3336; margin-bottom: 24px; }
+.tab { padding: 10px 20px; cursor: pointer; border: none; background: none; color: #71767b; font-size: 14px; font-weight: 600; border-bottom: 2px solid transparent; transition: .15s; }
+.tab:hover { color: #e7e9ea; }
+.tab.active { color: #1d9bf0; border-bottom-color: #1d9bf0; }
+.panel { display: none; }
+.panel.active { display: block; }
+.card { background: #1d2329; border: 1px solid #2f3336; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; margin-bottom: 12px; color: #71767b; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat { background: #16181c; border-radius: 8px; padding: 14px; }
+.stat .label { font-size: 12px; color: #71767b; margin-bottom: 4px; }
+.stat .value { font-size: 24px; font-weight: 700; color: #fff; }
+.stat .sub { font-size: 12px; color: #71767b; margin-top: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 12px; color: #71767b; font-weight: 600; border-bottom: 1px solid #2f3336; }
+td { padding: 10px 12px; border-bottom: 1px solid #1d2329; }
+tr:hover td { background: #16181c; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge.green { background: rgba(0,186,124,.15); color: #00ba7c; }
+.badge.yellow { background: rgba(244,180,0,.15); color: #f4b400; }
+.badge.red { background: rgba(224,36,94,.15); color: #e0245e; }
+.badge.blue { background: rgba(29,155,240,.15); color: #1d9bf0; }
+.btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+.btn.primary { background: #1d9bf0; color: #fff; }
+.btn.primary:hover { background: #1a8cd8; }
+.btn.danger { background: rgba(224,36,94,.15); color: #e0245e; }
+.btn.danger:hover { background: rgba(224,36,94,.3); }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+input, select { background: #0f1419; border: 1px solid #2f3336; border-radius: 8px; padding: 8px 12px; color: #e7e9ea; font-size: 13px; width: 100%; }
+input:focus, select:focus { outline: none; border-color: #1d9bf0; }
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-end; }
+.form-row > * { flex: 1; }
+.form-row > .btn { flex: 0 0 auto; }
+.form-label { font-size: 12px; color: #71767b; margin-bottom: 4px; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+.empty { text-align: center; color: #71767b; padding: 40px 0; font-size: 14px; }
+.creds-bar { background: #16181c; border-radius: 8px; padding: 8px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #71767b; }
+.toast { position: fixed; top: 16px; right: 16px; background: #1d9bf0; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 100; opacity: 0; transform: translateY(-20px); transition: .3s; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { background: #e0245e; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚡ PocketX Admin</h1>
+  <div class="status">
+    <span id="collectorStatus"><span class="dot yellow"></span> Loading...</span>
+    <span id="eventsCount" class="mono"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('rpc')">🔗 RPC Endpoints</button>
+    <button class="tab" onclick="switchTab('events')">📋 Events</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="panel-dashboard" class="panel active">
+    <div id="statsGrid" class="grid"></div>
+    <div class="card"><h2>🔍 Scanner Health</h2><div id="scannerTable"></div></div>
+  </div>
+
+  <!-- RPC Config -->
+  <div id="panel-rpc" class="panel">
+    <div class="card">
+      <div class="flex-between"><h2>Add RPC Endpoint</h2></div>
+      <div class="form-row">
+        <div><div class="form-label">Chain</div><select id="rpcChain"><option>sepolia</option><option>ethereum</option><option>polygon</option><option>arbitrum</option><option>optimism</option><option>bsc</option><option>base</option></select></div>
+        <div><div class="form-label">Key (auto)</div><input id="rpcKey" placeholder="auto-generated"></div>
+        <div><div class="form-label">Provider</div><select id="rpcProvider"><option>custom</option><option>infura</option><option>alchemy</option><option>blastapi</option><option>quicknode</option><option>public</option></select></div>
+        <button class="btn primary" onclick="addEndpoint()">+ Add</button>
+      </div>
+      <div><div class="form-label">RPC URL</div><input id="rpcUrl" placeholder="https://...your-rpc-url..."></div>
+    </div>
+    <div class="card"><h2>Configured Endpoints</h2><div id="rpcTable"></div></div>
+  </div>
+
+  <!-- Events -->
+  <div id="panel-events" class="panel">
+    <div class="card">
+      <div class="form-row">
+        <div><div class="form-label">Chain</div><select id="evtChain"><option value="">All</option></select></div>
+        <div><div class="form-label">Address</div><input id="evtAddress" placeholder="0x..."></div>
+        <button class="btn primary" onclick="loadEvents()">Search</button>
+      </div>
+    </div>
+    <div class="card"><h2>Latest Events</h2><div id="eventsTable"></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = '';
+
+// === Tabs ===
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const idx = {dashboard:1,rpc:2,events:3}[t];
+  document.querySelector(`.tab:nth-child(${idx})`).classList.add('active');
+  document.getElementById(`panel-${t}`).classList.add('active');
+  if (t==='dashboard') loadDashboard();
+  if (t==='rpc') loadRpcEndpoints();
+  if (t==='events') loadEvents();
+}
+
+// === Toast ===
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+(err?'error':'')+' show';
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// === API (no explicit token needed — browser sends Basic Auth) ===
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type':'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(BASE+path, opts);
+  if (r.status === 401) { location.reload(); throw new Error('auth'); }
+  const j = await r.json();
+  if (j.code !== 0 && j.code !== undefined) throw new Error(j.message || 'error');
+  return j.data !== undefined ? j.data : j;
+}
+
+// === Loaders ===
+async function loadDashboard() {
+  try {
+    const d = await api('GET', '/api/v2/admin/dashboard');
+    // Stats grid
+    let html = '';
+    for (const [chain, s] of Object.entries(d.hourly || {})) {
+      html += `<div class="stat"><div class="label">${chain}</div><div class="value">${(s.total||0).toLocaleString()}</div><div class="sub">block ${s.latest_block||'-'} | cp ${s.checkpoint||'0'}</div></div>`;
+    }
+    document.getElementById('statsGrid').innerHTML = html || '<div class="empty">No data yet</div>';
+
+    // Scanner table
+    let scanHtml = '<table><thead><tr><th>Chain</th><th>Status</th><th>Endpoints</th><th>Error</th></tr></thead><tbody>';
+    for (const c of (d.scanner?.collectors||[])) {
+      const cls = c.status==='scanning'?'green':c.status==='idle'?'yellow':'red';
+      scanHtml += `<tr><td><strong>${c.chain}</strong></td><td><span class="badge ${cls}">${c.status}</span></td><td>${d.scanner?.endpoints||0}</td><td class="mono">${c.error||'-'}</td></tr>`;
+    }
+    document.getElementById('scannerTable').innerHTML = scanHtml+'</tbody></table>';
+
+    // Header status
+    const scanning = d.scanner?.collectors?.filter(c=>c.status==='scanning').length||0;
+    document.getElementById('collectorStatus').innerHTML = `<span class="dot ${scanning? 'green':'yellow'}"></span> ${scanning} chain${scanning!==1?'s':''} active`;
+  } catch(e) { if (e.message!=='auth') toast('Dashboard load failed: '+e.message, true); }
+}
+
+async function loadRpcEndpoints() {
+  try {
+    const eps = await api('GET', '/api/v2/admin/rpc-endpoints');
+    if (!eps.length) { document.getElementById('rpcTable').innerHTML='<div class="empty">No endpoints configured. Add one above.</div>'; return; }
+    let html = '<table><thead><tr><th>Chain</th><th>Key</th><th>URL</th><th>Provider</th><th>Status</th><th></th></tr></thead><tbody>';
+    for (const ep of eps) {
+      html += `<tr>
+        <td><strong>${ep.chain}</strong></td>
+        <td class="mono">${ep.endpoint_key}</td>
+        <td class="mono" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ep.url}</td>
+        <td><span class="badge blue">${ep.provider}</span></td>
+        <td><span class="badge ${ep.enabled?'green':'red'}">${ep.enabled?'enabled':'disabled'}</span></td>
+        <td><button class="btn danger small" onclick="deleteEndpoint('${ep.chain}','${ep.endpoint_key}')">Del</button>
+        <button class="btn small" style="background:rgba(244,180,0,.15);color:#f4b400;margin-left:4px" onclick="toggleEndpoint('${ep.chain}','${ep.endpoint_key}')">${ep.enabled?'Disable':'Enable'}</button></td>
+      </tr>`;
+    }
+    document.getElementById('rpcTable').innerHTML = html+'</tbody></table>';
+  } catch(e) { if (e.message!=='auth') toast('RPC load failed: '+e.message, true); }
+}
+
+async function addEndpoint() {
+  const chain = document.getElementById('rpcChain').value;
+  const url = document.getElementById('rpcUrl').value.trim();
+  const key = document.getElementById('rpcKey').value.trim();
+  const provider = document.getElementById('rpcProvider').value;
+  if (!url) return toast('URL required', true);
+  try {
+    await api('POST', '/api/v2/admin/rpc-endpoint', { chain, url, key: key||undefined, provider });
+    toast('✅ Endpoint saved');
+    document.getElementById('rpcUrl').value = '';
+    document.getElementById('rpcKey').value = '';
+    loadRpcEndpoints();
+  } catch(e) { toast('Failed: '+e.message, true); }
+}
+
+async function deleteEndpoint(chain, key) {
+  if (!confirm(`Delete ${chain}/${key}?`)) return;
+  try { await api('DELETE', `/api/v2/admin/rpc-endpoint/${chain}/${key}`); toast('Deleted'); loadRpcEndpoints(); }
+  catch(e) { toast('Failed: '+e.message, true); }
+}
+
+async function toggleEndpoint(chain, key) {
+  try { await api('PATCH', `/api/v2/admin/rpc-endpoint/${chain}/${key}/toggle`); loadRpcEndpoints(); }
+  catch(e) { toast('Failed: '+e.message, true); }
+}
+
+async function loadEvents() {
+  try {
+    const chain = document.getElementById('evtChain').value;
+    const address = document.getElementById('evtAddress').value.trim();
+    const params = new URLSearchParams({ page_size: '30' });
+    if (chain) params.set('chain', chain);
+    if (address) params.set('address', address);
+    const d = await api('GET', '/api/v2/data/events?'+params.toString());
+
+    // Populate chain dropdown if empty
+    if (document.getElementById('evtChain').children.length === 1) {
+      const chains = [...new Set(d.data?.map(e=>e.chain)||[])];
+      const sel = document.getElementById('evtChain');
+      chains.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+    }
+
+    if (!d.data?.length) { document.getElementById('eventsTable').innerHTML='<div class="empty">No events found</div>'; return; }
+    let html = '<table><thead><tr><th>Chain</th><th>Block</th><th>Type</th><th>From</th><th>To</th><th>Token</th><th>Amount</th></tr></thead><tbody>';
+    for (const e of d.data) {
+      html += `<tr>
+        <td><span class="badge blue">${e.chain}</span></td>
+        <td class="mono">${e.block_number}</td>
+        <td>${e.event_type}</td>
+        <td class="mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.from_address||'-'}</td>
+        <td class="mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.to_address||'-'}</td>
+        <td>${e.token_symbol||'-'}</td>
+        <td class="mono">${e.amount||'0'}</td>
+      </tr>`;
+    }
+    document.getElementById('eventsTable').innerHTML = html+'</tbody></table>';
+  } catch(e) { if (e.message!=='auth') toast('Events load failed: '+e.message, true); }
+}
+
+// Initial load + periodic refresh
+loadAll();
+function loadAll() { loadDashboard(); }
+setInterval(loadAll, 15000);
+</script>
+</body>
+</html>

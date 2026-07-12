@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX Admin — Risk Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:#6366F1;--brand-secondary:#8B5CF5;--brand-gradient:linear-gradient(135deg,#6366F1,#8B5CF5);
+  --surface-bg:#07070F;--surface-card:#111122;--surface-hover:#181830;--surface-input:#151528;
+  --text-primary:#F0F0F5;--text-secondary:#8888AA;--text-tertiary:#555577;
+  --success:#34D399;--warning:#FBBF24;--error:#F87171;--info:#60A5FA;
+  --border:#1E1E3A;--radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-xl:24px;--radius-full:9999px;
+  --sidebar-w:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--surface-bg);color:var(--text-primary);display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);height:100vh;position:fixed;left:0;top:0;background:rgba(17,17,34,.80);backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 16px;z-index:50}
+.sidebar-logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;padding:8px 12px;margin-bottom:16px}
+.sidebar-logo-icon{width:30px;height:30px;background:var(--brand-gradient);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white}
+.sidebar-section{font-size:9px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;padding:12px 12px 4px}
+.sidebar-nav{flex:1;display:flex;flex-direction:column;gap:2px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-md);font-size:13px;font-weight:500;color:var(--text-secondary);transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.sidebar-item:hover{background:var(--surface-hover);color:var(--text-primary)}
+.sidebar-item.active{background:rgba(99,102,241,.12);color:var(--text-brand)}
+.sidebar-badge{margin-left:auto;padding:2px 8px;border-radius:var(--radius-full);font-size:10px;font-weight:600;background:rgba(251,191,36,.15);color:var(--warning)}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 0}
+.sidebar-footer{border-top:1px solid var(--border);padding:10px 12px;font-size:10px;color:var(--text-tertiary)}
+.main{margin-left:var(--sidebar-w);flex:1;padding:28px 36px;max-width:calc(100vw - var(--sidebar-w))}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.topbar-left h1{font-size:22px;font-weight:700}
+.topbar-left p{font-size:12px;color:var(--text-secondary)}
+.btn{padding:9px 20px;border-radius:var(--radius-full);font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-primary{background:var(--brand-gradient);color:white}
+.btn-primary:hover{box-shadow:0 0 20px rgba(99,102,241,.35)}
+.btn-outline{background:transparent;color:var(--text-primary);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--brand-primary)}
+.btn-sm{padding:5px 12px;font-size:11px}
+
+/* Risk KPI */
+.risk-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.risk-kpi{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.risk-kpi-label{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:4px}
+.risk-kpi-value{font-size:22px;font-weight:800}
+.risk-kpi.critical{border-color:rgba(248,113,113,.30)}
+.risk-kpi.critical .risk-kpi-value{color:var(--error)}
+
+.layout-2col{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.panel{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.panel-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)}
+.panel-body{padding:14px 20px}
+.panel-title{font-size:13px;font-weight:600}
+
+/* Alert rows */
+.alert-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.alert-row:last-child{border-bottom:none}
+.alert-severity{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.alert-severity.critical{background:rgba(248,113,113,.12);color:var(--error)}
+.alert-severity.high{background:rgba(251,146,60,.12);color:#FB923C}
+.alert-severity.medium{background:rgba(251,191,36,.12);color:var(--warning)}
+.alert-severity.low{background:rgba(96,165,250,.12);color:var(--info)}
+.alert-info{flex:1;min-width:0}
+.alert-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.alert-desc{font-size:11px;color:var(--text-secondary);line-height:1.4}
+.alert-meta{font-size:10px;color:var(--text-tertiary);margin-top:3px}
+.alert-actions{display:flex;gap:4px;flex-shrink:0}
+
+/* Rules config */
+.rule-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:12px}
+.rule-item:last-child{border-bottom:none}
+.rule-name{font-weight:600}
+.rule-desc{font-size:10px;color:var(--text-tertiary)}
+.toggle-switch{width:40px;height:22px;background:var(--surface-input);border:1px solid var(--border);border-radius:var(--radius-full);position:relative;cursor:pointer;transition:all .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--success);border-color:var(--success)}
+.toggle-switch::after{content:'';position:absolute;top:1px;left:1px;width:18px;height:18px;background:white;border-radius:50%;transition:left .2s}
+.toggle-switch.on::after{left:19px}
+
+/* Blacklist */
+.blacklist-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.blacklist-item:last-child{border-bottom:none}
+.blacklist-addr{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);flex:1}
+.blacklist-reason{font-size:10px;color:var(--text-tertiary)}
+.tag{padding:3px 8px;border-radius:var(--radius-full);font-size:9px;font-weight:600}
+.tag.red{background:rgba(248,113,113,.10);color:var(--error)}
+.tag.orange{background:rgba(251,146,60,.10);color:#FB923C}
+.tag.yellow{background:rgba(251,191,36,.10);color:var(--warning)}
+
+.addr-input-row{display:flex;gap:8px;margin-bottom:14px}
+.addr-input-row input{flex:1;padding:10px 14px;background:var(--surface-input);border:1px solid var(--border);border-radius:var(--radius-full);color:var(--text-primary);font-size:12px;outline:none;font-family:'JetBrains Mono',monospace}
+.addr-input-row input:focus{border-color:var(--brand-primary)}
+
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:16px}.layout-2col{grid-template-columns:1fr}.risk-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="sidebar-logo-icon">⚡</div>PocketX Admin</div>
+  <div class="sidebar-section">Overview</div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item"><span>📊</span> Dashboard</button>
+    <button class="sidebar-item"><span>🏢</span> Tenants</button>
+    <button class="sidebar-item"><span>💰</span> Transactions</button>
+    <button class="sidebar-item active"><span>🛡️</span> Risk Center <span class="sidebar-badge">3</span></button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Operations</div>
+    <button class="sidebar-item"><span>📋</span> Webhook Events</button>
+    <button class="sidebar-item"><span>📤</span> Sweep Queue</button>
+    <button class="sidebar-item"><span>⚙️</span> Settings</button>
+    <button class="sidebar-item"><span>📄</span> Audit Logs</button>
+  </nav>
+  <div class="sidebar-footer">Sepolia · Admin</div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Risk Center</h1>
+      <p>Monitor, configure, and respond to security risks</p>
+    </div>
+    <button class="btn btn-primary">+ New Rule</button>
+  </div>
+
+  <div class="risk-kpi-grid">
+    <div class="risk-kpi critical"><div class="risk-kpi-label">Active Alerts</div><div class="risk-kpi-value">3</div></div>
+    <div class="risk-kpi"><div class="risk-kpi-label">Resolved (24h)</div><div class="risk-kpi-value">12</div></div>
+    <div class="risk-kpi"><div class="risk-kpi-label">Blacklisted Addrs</div><div class="risk-kpi-value">47</div></div>
+    <div class="risk-kpi"><div class="risk-kpi-label">Risk Rules Active</div><div class="risk-kpi-value">8/10</div></div>
+  </div>
+
+  <div class="layout-2col">
+    <div>
+      <!-- Alerts -->
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-header">
+          <span class="panel-title">🔴 Active Alerts</span>
+          <div style="display:flex;gap:8px;">
+            <span style="font-size:10px;color:var(--text-tertiary);cursor:pointer;">All</span>
+            <span style="font-size:10px;color:var(--text-tertiary);cursor:pointer;">Critical</span>
+            <span style="font-size:10px;color:var(--text-tertiary);cursor:pointer;">High</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="alert-row">
+            <div class="alert-severity critical">🔴</div>
+            <div class="alert-info">
+              <div class="alert-title">Large Withdrawal Threshold Exceeded</div>
+              <div class="alert-desc">GameFiX · Player #1203 requesting 5.2 ETH withdrawal. Limit: 3 ETH/day.</div>
+              <div class="alert-meta">10 min ago · Tenant: GameFiX · ID: RISK-0042</div>
+            </div>
+            <div class="alert-actions">
+              <button class="btn btn-sm btn-outline" style="border-color:var(--error);color:var(--error);">Block</button>
+              <button class="btn btn-sm btn-outline">Review</button>
+            </div>
+          </div>
+          <div class="alert-row">
+            <div class="alert-severity high">🟠</div>
+            <div class="alert-info">
+              <div class="alert-title">Unusual Transaction Velocity</div>
+              <div class="alert-desc">PayBridge · 37 transactions from same IP (192.168.1.100) in 5 minutes.</div>
+              <div class="alert-meta">45 min ago · Tenant: PayBridge · ID: RISK-0041</div>
+            </div>
+            <div class="alert-actions">
+              <button class="btn btn-sm btn-outline">Investigate</button>
+            </div>
+          </div>
+          <div class="alert-row">
+            <div class="alert-severity medium">🟡</div>
+            <div class="alert-info">
+              <div class="alert-title">Blacklisted Address Interaction</div>
+              <div class="alert-desc">Address 0x4f7a...c23d attempted to send 0.1 ETH to GameFiX user address.</div>
+              <div class="alert-meta">2 hours ago · ID: RISK-0040</div>
+            </div>
+            <div class="alert-actions">
+              <button class="btn btn-sm btn-outline">View</button>
+            </div>
+          </div>
+          <div class="alert-row">
+            <div class="alert-severity low">🔵</div>
+            <div class="alert-info">
+              <div class="alert-title">Failed API Authentication</div>
+              <div class="alert-desc">NFTrade · 8 failed API auth attempts with invalid key in last hour.</div>
+              <div class="alert-meta">3 hours ago · Tenant: NFTrade · ID: RISK-0039</div>
+            </div>
+            <div class="alert-actions">
+              <button class="btn btn-sm btn-outline">Dismiss</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resolved Alerts -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">✅ Recently Resolved</span>
+        </div>
+        <div class="panel-body">
+          <div class="alert-row" style="opacity:.6">
+            <div class="alert-severity medium" style="background:rgba(52,211,153,.12);color:var(--success)">✅</div>
+            <div class="alert-info">
+              <div class="alert-title">Sweep Gas Insufficient</div>
+              <div class="alert-desc">StablePay sweep failed due to low gas. Resolved by admin fund.</div>
+              <div class="alert-meta">Yesterday · Resolved by admin@btclayer.xyz</div>
+            </div>
+          </div>
+          <div class="alert-row" style="opacity:.6">
+            <div class="alert-severity medium" style="background:rgba(52,211,153,.12);color:var(--success)">✅</div>
+            <div class="alert-info">
+              <div class="alert-title">Daily Limit Exceeded</div>
+              <div class="alert-desc">GameFiX hit 10 ETH daily limit. Admin temporarily raised to 15 ETH.</div>
+              <div class="alert-meta">2 days ago · Resolved by admin@btclayer.xyz</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Risk Rules -->
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-header">
+          <span class="panel-title">⚙️ Risk Rules</span>
+        </div>
+        <div class="panel-body">
+          <div class="rule-item">
+            <div><div class="rule-name">Large Withdrawal Alert</div><div class="rule-desc">Alert when single withdrawal &gt; 3 ETH</div></div>
+            <div class="toggle-switch on"></div>
+          </div>
+          <div class="rule-item">
+            <div><div class="rule-name">Velocity Check</div><div class="rule-desc">Alert when &gt;10 txns/min from same IP</div></div>
+            <div class="toggle-switch on"></div>
+          </div>
+          <div class="rule-item">
+            <div><div class="rule-name">Blacklist Enforcement</div><div class="rule-desc">Reject txns to/from blacklisted addresses</div></div>
+            <div class="toggle-switch on"></div>
+          </div>
+          <div class="rule-item">
+            <div><div class="rule-name">Daily Limit Enforcement</div><div class="rule-desc">Hard cap per tenant per day</div></div>
+            <div class="toggle-switch on"></div>
+          </div>
+          <div class="rule-item">
+            <div><div class="rule-name">Multi-Sig Approval</div><div class="rule-desc">Require admin approval for &gt;5 ETH</div></div>
+            <div class="toggle-switch"></div>
+          </div>
+          <div class="rule-item">
+            <div><div class="rule-name">New Tenant Review</div><div class="rule-desc">Flag first 48h activity for review</div></div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blacklist -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🚫 Blacklist</span>
+          <span style="font-size:11px;color:var(--text-brand);cursor:pointer;">+ Add</span>
+        </div>
+        <div class="panel-body">
+          <div class="addr-input-row">
+            <input type="text" placeholder="0x... address to blacklist">
+            <button class="btn btn-sm btn-outline" style="border-color:var(--error);color:var(--error);">Block</button>
+          </div>
+          <div class="blacklist-item">
+            <span class="blacklist-addr">0x4f7a9b2c1d8e3f5a6b7c8d9e0f1a2b3c4d5e6f</span>
+            <span class="tag red">Sanctioned</span>
+            <span class="blacklist-reason">OFAC SDN List</span>
+          </div>
+          <div class="blacklist-item">
+            <span class="blacklist-addr">0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a</span>
+            <span class="tag orange">Exploit</span>
+            <span class="blacklist-reason">DeFi hack origin · 2026-06</span>
+          </div>
+          <div class="blacklist-item">
+            <span class="blacklist-addr">0x8f3a2d1c5e4b7f6a9d8c3e2f1b7a9d3c5e6f4a</span>
+            <span class="tag yellow">Suspicious</span>
+            <span class="blacklist-reason">Mixer interaction pattern</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+document.querySelectorAll('.toggle-switch').forEach(t=>{t.addEventListener('click',function(){this.classList.toggle('on')})})
+</script>
+</body>
+</html>
