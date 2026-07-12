@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
-import { LayoutDashboard, Link, FileSearch, Shield, UserCog, FileText, TrendingUp, Database, Key, Building, DollarSign, Webhook, Radio, Settings } from 'lucide-react';
+import { LayoutDashboard, Link, FileSearch, Shield, UserCog, FileText, TrendingUp, Database, Key, Building, DollarSign, Webhook, Radio, Settings, BarChart } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import RpcPool from './pages/RpcPool';
 import Events from './pages/Events';
@@ -16,6 +16,8 @@ import Webhooks from './pages/Webhooks';
 import Sweeps from './pages/Sweeps';
 import DataCenter from './pages/DataCenter';
 import SettingsPage from './pages/SettingsPage';
+import Revenue from './pages/Revenue';
+import ApiUsage from './pages/ApiUsage';
 import Login from './Login';
 import { api } from './lib';
 
@@ -27,6 +29,8 @@ const NAV = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { path: '/rpc', label: 'RPC Pool', icon: Link },
   { path: '/events', label: 'Events', icon: FileSearch },
+  { path: '/revenue', label: 'Revenue', icon: DollarSign },
+  { path: '/api-usage', label: 'API Usage', icon: BarChart },
   { path: '/tenants', label: 'Tenants', icon: Building },
   { path: '/transactions', label: 'Transactions', icon: DollarSign },
   { path: '/sweeps', label: 'Sweep Queue', icon: Radio },
@@ -92,6 +96,8 @@ function AuthedLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/rpc" element={<RpcPool />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/revenue" element={<Revenue />} />
+          <Route path="/api-usage" element={<ApiUsage />} />
           <Route path="/tenants" element={<Tenants />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/sweeps" element={<Sweeps />} />

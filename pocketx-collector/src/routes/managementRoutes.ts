@@ -333,4 +333,56 @@ router.get('/settings', requireAdmin, asyncHandler(async (_req, res) => {
   res.json(apiResponse({ tokens: tokens.rows, chains: chains.rows, feeConfigs: feeConfigs.rows }));
 }));
 
+// ================================================================
+// Revenue Dashboard
+// ================================================================
+
+/** GET /api/v2/admin/revenue */
+router.get('/revenue', requireAdmin, asyncHandler(async (_req, res) => {
+  const [subs, payments, apiStats, dcCount, activeTenants] = await Promise.all([
+    pool.query(`SELECT plan_id, plan_name, price, billing_cycle, status, COUNT(*)::int as cnt FROM subscriptions GROUP BY plan_id, plan_name, price, billing_cycle, status ORDER BY plan_id`),
+    pool.query(`SELECT status, COUNT(*)::int as cnt, COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) as total_usd FROM payment_orders WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY status`),
+    pool.query(`SELECT date, SUM(total_calls)::int as calls FROM api_usage_daily WHERE date > NOW() - INTERVAL '30 days' GROUP BY date ORDER BY date`),
+    pool.query(`SELECT COUNT(*)::int as cnt FROM tenants WHERE data_plan_id IS NOT NULL`),
+    pool.query(`SELECT COUNT(*)::int as cnt FROM tenants WHERE status = 'active'`),
+  ]);
+  res.json(apiResponse({
+    subscriptions: subs.rows,
+    payments: payments.rows,
+    apiUsage: apiStats.rows,
+    dcSubscribers: dcCount.rows[0].cnt,
+    activeTenants: activeTenants.rows[0].cnt,
+  }));
+}));
+
+// ================================================================
+// API Usage Monitoring
+// ================================================================
+
+/** GET /api/v2/admin/api-usage */
+router.get('/api-usage', requireAdmin, asyncHandler(async (_req, res) => {
+  const [byTenant, daily, topKeys] = await Promise.all([
+    pool.query(`SELECT t.name, t.id, COUNT(au.id) as total_calls FROM api_usage au RIGHT JOIN tenants t ON t.id = au.tenant_id WHERE au.created_at > NOW() - INTERVAL '30 days' OR au.id IS NULL GROUP BY t.id, t.name ORDER BY total_calls DESC LIMIT 50`),
+    pool.query(`SELECT date, SUM(total_calls)::int as calls FROM api_usage_daily WHERE date > NOW() - INTERVAL '30 days' GROUP BY date ORDER BY date`),
+    pool.query(`SELECT key_hash, enabled, last_used_at, expires_at FROM api_keys ORDER BY last_used_at DESC NULLS LAST LIMIT 50`),
+  ]);
+  res.json(apiResponse({ byTenant: byTenant.rows, daily: daily.rows, apiKeys: topKeys.rows }));
+}));
+
+// ================================================================
+// Risk Rules
+// ================================================================
+
+/** GET /api/v2/admin/risk-rules */
+router.get('/risk-rules', requireAdmin, asyncHandler(async (_req, res) => {
+  const { rows } = await pool.query('SELECT * FROM risk_rules ORDER BY updated_at DESC');
+  res.json(apiResponse(rows));
+}));
+
+/** GET /api/v2/admin/token-blacklist */
+router.get('/token-blacklist', requireAdmin, asyncHandler(async (_req, res) => {
+  const { rows } = await pool.query('SELECT * FROM token_blacklist ORDER BY created_at DESC');
+  res.json(apiResponse(rows));
+}));
+
 export default router;
