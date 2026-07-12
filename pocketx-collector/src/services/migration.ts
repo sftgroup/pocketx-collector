@@ -199,9 +199,12 @@ export async function migrateEventCollectorTables(): Promise<void> {
       }
     }
     try {
+      await client.query('SAVEPOINT hypertable_setup');
       await client.query(`SELECT create_hypertable('binance_futures_prices', 'bucket', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);`);
+      await client.query('RELEASE SAVEPOINT hypertable_setup');
     } catch (e: any) {
-      logger.warn('[migration] binance hypertable (may need TimescaleDB)', { error: e.message });
+      await client.query('ROLLBACK TO SAVEPOINT hypertable_setup').catch(() => {});
+      logger.warn('[migration] binance hypertable skipped (requires TimescaleDB)', { error: e.message });
     }
 
     // ============================================================
@@ -287,7 +290,9 @@ export async function migrateEventCollectorTables(): Promise<void> {
         updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
       );
     `);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys (api_key);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys (api_key);`).catch((e: any) => {
+      logger.warn('[migration] index api_keys skipped', { error: e.message });
+    });
 
     await client.query('COMMIT');
     logger.info('[migration] All tables created', {

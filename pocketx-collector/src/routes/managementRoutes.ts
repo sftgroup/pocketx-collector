@@ -174,4 +174,163 @@ router.get('/system', requireAdmin, asyncHandler(async (_req, res) => {
   }));
 }));
 
+// ================================================================
+// WaaS / Vault — Tenants Management
+// ================================================================
+
+/** GET /api/v2/admin/tenants */
+router.get('/tenants', requireAdmin, asyncHandler(async (_req, res) => {
+  const { rows } = await pool.query(`
+    SELECT t.id, t.name, t.contact_email, t.status, t.webhook_url,
+           t.sweep_address, t.sweep_threshold, t.review_mode, t.created_at,
+           (SELECT count(*) FROM address_pool ap WHERE ap.tenant_id = t.id) as addresses,
+           (SELECT count(*) FROM saas_withdrawals sw WHERE sw.tenant_id = t.id) as withdrawals
+    FROM tenants t
+    ORDER BY t.created_at DESC
+  `);
+  res.json(apiResponse(rows));
+}));
+
+/** PATCH /api/v2/admin/tenants/:id */
+router.patch('/tenants/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, review_mode, sweep_threshold, sweep_address, webhook_url } = req.body;
+  const sets: string[] = [];
+  const vals: any[] = [];
+  let i = 1;
+  if (status) { sets.push(`status = $${i++}`); vals.push(status); }
+  if (review_mode) { sets.push(`review_mode = $${i++}`); vals.push(review_mode); }
+  if (sweep_threshold !== undefined) { sets.push(`sweep_threshold = $${i++}`); vals.push(sweep_threshold); }
+  if (sweep_address !== undefined) { sets.push(`sweep_address = $${i++}`); vals.push(sweep_address); }
+  if (webhook_url !== undefined) { sets.push(`webhook_url = $${i++}`); vals.push(webhook_url); }
+  if (!sets.length) return res.json(apiResponse(null, 'nothing to update'));
+  sets.push(`updated_at = NOW()`);
+  vals.push(id);
+  await pool.query(`UPDATE tenants SET ${sets.join(', ')} WHERE id = $${i}`, vals);
+  res.json(apiResponse({ updated: true }));
+}));
+
+/** GET /api/v2/admin/tenants/:id */
+router.get('/tenants/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const [tenant, addresses, withdrawals, sweeps] = await Promise.all([
+    pool.query('SELECT * FROM tenants WHERE id = $1', [id]),
+    pool.query('SELECT * FROM address_pool WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 50', [id]),
+    pool.query('SELECT * FROM saas_withdrawals WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 50', [id]),
+    pool.query('SELECT * FROM sweep_records WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 50', [id]),
+  ]);
+  res.json(apiResponse({
+    tenant: tenant.rows[0],
+    addresses: addresses.rows,
+    withdrawals: withdrawals.rows,
+    sweeps: sweeps.rows,
+  }));
+}));
+
+// ================================================================
+// Transaction Queue
+// ================================================================
+
+/** GET /api/v2/admin/transactions */
+router.get('/transactions', requireAdmin, asyncHandler(async (req, res) => {
+  const { status, limit, offset } = req.query as any;
+  const conditions: string[] = [];
+  const vals: any[] = [];
+  let idx = 1;
+  if (status) { conditions.push(`tx.status = $${idx++}`); vals.push(status); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const pageSize = Math.min(parseInt(limit) || 50, 200);
+  const pageOffset = parseInt(offset) || 0;
+
+  const [{ rows }, { rows: cntRows }] = await Promise.all([
+    pool.query(`
+      SELECT tx.*, cw.address as wallet_address, u.email as user_email
+      FROM transactions tx
+      LEFT JOIN custodial_wallets cw ON cw.id = tx.wallet_id
+      LEFT JOIN users u ON u.id = cw.user_id
+      ${where}
+      ORDER BY tx.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}
+    `, [...vals, pageSize, pageOffset]),
+    pool.query(`SELECT COUNT(*)::int as total FROM transactions tx ${where}`, vals),
+  ]);
+  res.json(apiResponse({ data: rows, total: cntRows[0].total }));
+}));
+
+/** PATCH /api/v2/admin/transactions/:id */
+router.patch('/transactions/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, review_note } = req.body;
+  if (!status) return res.status(400).json(apiResponse(null, 'status required', -1));
+  await pool.query(`UPDATE transactions SET status = $1, updated_at = NOW() WHERE id = $2`, [status, id]);
+  res.json(apiResponse({ updated: true }));
+}));
+
+// ================================================================
+// Webhook Events
+// ================================================================
+
+/** GET /api/v2/admin/webhooks */
+router.get('/webhooks', requireAdmin, asyncHandler(async (req, res) => {
+  const { status, limit, offset } = req.query as any;
+  const conditions: string[] = [];
+  const vals: any[] = [];
+  let idx = 1;
+  if (status) { conditions.push(`status = $${idx++}`); vals.push(status); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const pageSize = Math.min(parseInt(limit) || 50, 200);
+  const pageOffset = parseInt(offset) || 0;
+
+  const [{ rows }, { rows: cntRows }] = await Promise.all([
+    pool.query(`SELECT * FROM webhook_events ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`, [...vals, pageSize, pageOffset]),
+    pool.query(`SELECT COUNT(*)::int as total FROM webhook_events ${where}`, vals),
+  ]);
+  res.json(apiResponse({ data: rows, total: cntRows[0].total }));
+}));
+
+// ================================================================
+// Sweep Queue
+// ================================================================
+
+/** GET /api/v2/admin/sweeps */
+router.get('/sweeps', requireAdmin, asyncHandler(async (req, _res) => {
+  const { rows } = await pool.query(`
+    SELECT sr.*, t.name as tenant_name
+    FROM sweep_records sr
+    LEFT JOIN tenants t ON t.id = sr.tenant_id
+    ORDER BY sr.created_at DESC LIMIT 100
+  `);
+  _res.json(apiResponse(rows));
+}));
+
+// ================================================================
+// Data Center Subscriptions
+// ================================================================
+
+/** GET /api/v2/admin/dc-subscriptions */
+router.get('/dc-subscriptions', requireAdmin, asyncHandler(async (_req, res) => {
+  const { rows } = await pool.query(`
+    SELECT t.name, t.id as tenant_id, t.status,
+           COALESCE(dsp.plan_id, 'N/A') as data_plan_id,
+           dsp.dc_api_key, dsp.dc_api_key_created_at
+    FROM tenants t
+    LEFT JOIN data_subscription_plans dsp ON dsp.tenant_id = t.id
+    ORDER BY dsp.dc_api_key_created_at DESC NULLS LAST
+  `);
+  res.json(apiResponse(rows));
+}));
+
+// ================================================================
+// Settings (Fee Configs + Tokens + Chains)
+// ================================================================
+
+/** GET /api/v2/admin/settings */
+router.get('/settings', requireAdmin, asyncHandler(async (_req, res) => {
+  const [tokens, chains, feeConfigs] = await Promise.all([
+    pool.query('SELECT * FROM tokens ORDER BY symbol'),
+    pool.query('SELECT * FROM chains ORDER BY chain_id'),
+    pool.query('SELECT fc.*, t.symbol FROM fee_configs fc LEFT JOIN tokens t ON t.id = fc.token_id'),
+  ]);
+  res.json(apiResponse({ tokens: tokens.rows, chains: chains.rows, feeConfigs: feeConfigs.rows }));
+}));
+
 export default router;

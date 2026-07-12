@@ -4,7 +4,7 @@ import { api } from '../lib';
 
 interface ChainHourly { total: number; latest_block: number; checkpoint: number; status: string; }
 interface ScannerCollector { chain: string; status: string; error: string | null; }
-interface CollectorHealth { running: boolean; active?: boolean; symbols?: number; wsConnected?: boolean; accounts?: number; }
+interface CollectorHealth { running: boolean; active?: boolean; symbols?: number; wsConnected?: boolean; accounts?: number; chains?: number; }
 interface DashboardData {
   scanner: { collectors: ScannerCollector[]; endpoints: number };
   storage: { totalRows: number; newestBlock: number };

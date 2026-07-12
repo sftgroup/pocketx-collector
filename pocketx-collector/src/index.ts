@@ -59,7 +59,7 @@ function sendSPA(res: express.Response) {
 function setSession(res: express.Response): string {
   const token = crypto.randomBytes(32).toString('hex');
   res.cookie('admin_session', token, {
-    httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000, secure: config.nodeEnv === 'production',
+    httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000, secure: false,
   });
   initSessionStore(token);
   return token;

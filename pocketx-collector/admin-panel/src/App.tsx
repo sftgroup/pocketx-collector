@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
-import { LayoutDashboard, Link, FileSearch, Shield, UserCog, FileText, TrendingUp, Database, Key } from 'lucide-react';
+import { LayoutDashboard, Link, FileSearch, Shield, UserCog, FileText, TrendingUp, Database, Key, Building, DollarSign, Webhook, Radio, Settings } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import RpcPool from './pages/RpcPool';
 import Events from './pages/Events';
@@ -10,6 +10,12 @@ import Audit from './pages/Audit';
 import OkxAccounts from './pages/OkxAccounts';
 import MarketData from './pages/MarketData';
 import ApiKeys from './pages/ApiKeys';
+import Tenants from './pages/Tenants';
+import Transactions from './pages/Transactions';
+import Webhooks from './pages/Webhooks';
+import Sweeps from './pages/Sweeps';
+import DataCenter from './pages/DataCenter';
+import SettingsPage from './pages/SettingsPage';
 import Login from './Login';
 import { api } from './lib';
 
@@ -21,12 +27,18 @@ const NAV = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { path: '/rpc', label: 'RPC Pool', icon: Link },
   { path: '/events', label: 'Events', icon: FileSearch },
+  { path: '/tenants', label: 'Tenants', icon: Building },
+  { path: '/transactions', label: 'Transactions', icon: DollarSign },
+  { path: '/sweeps', label: 'Sweep Queue', icon: Radio },
+  { path: '/webhooks', label: 'Webhooks', icon: Webhook },
+  { path: '/dc', label: 'Data Center', icon: Radio },
   { path: '/users', label: 'Users', icon: UserCog },
   { path: '/audit', label: 'Audit Log', icon: FileText },
   { path: '/system', label: 'System', icon: Shield },
-  { path: '/okx', label: 'OKX Accounts', icon: Database },
+  { path: '/okx', label: 'OKX', icon: Database },
   { path: '/market', label: 'Market Data', icon: TrendingUp },
   { path: '/api-keys', label: 'API Keys', icon: Key },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 function Sidebar() {
@@ -80,12 +92,18 @@ function AuthedLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/rpc" element={<RpcPool />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/tenants" element={<Tenants />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/sweeps" element={<Sweeps />} />
+          <Route path="/webhooks" element={<Webhooks />} />
+          <Route path="/dc" element={<DataCenter />} />
           <Route path="/users" element={<Users />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="/system" element={<System />} />
           <Route path="/okx" element={<OkxAccounts />} />
           <Route path="/market" element={<MarketData />} />
           <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
