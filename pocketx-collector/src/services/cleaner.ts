@@ -4,10 +4,10 @@ import { logger } from '../logger';
 /**
  * Data Cleaner
  *
- * Scheduled job that purges expired events from the events table.
+ * Uses TimescaleDB `drop_chunks()` for O(1) data retention — no DELETE scanning.
  *
  * Retention policy:
- *  - events: 72 hours (DELETE every 1h)
+ *  - events: 72 hours (drop_chunks every 1h)
  *  - payment_events: permanent (never deleted)
  *  - event_checkpoints: permanent
  */
@@ -22,6 +22,7 @@ export class DataCleaner {
     logger.info('[cleaner] Data Cleaner started', {
       interval: '1h',
       retention: `${RETENTION_HOURS}h`,
+      method: 'drop_chunks',
     });
 
     // Run immediately on startup, then every hour
@@ -37,31 +38,23 @@ export class DataCleaner {
     const startTime = Date.now();
 
     try {
-      // 1. Count events before cleanup
-      const beforeResult = await pool.query('SELECT COUNT(*)::int as cnt FROM events');
-      const beforeCount = beforeResult.rows[0].cnt;
-
-      // 2. Delete events older than 72 hours
-      // Only delete events whose payment_events records are already processed (or no payment linkage)
-      const deleteResult = await pool.query(
-        `DELETE FROM events
-         WHERE created_at < NOW() - INTERVAL '72 hours'
-         AND id NOT IN (
-           SELECT event_id FROM payment_events
-           WHERE event_id IS NOT NULL
-         )`
+      // Drop all chunks older than RETENTION_HOURS (TimescaleDB O(1) operation)
+      const result = await pool.query(
+        `SELECT drop_chunks(
+          relation => 'events',
+          older_than => INTERVAL '72 hours'
+        )`
       );
-
-      // 3. Count remaining
-      const afterResult = await pool.query('SELECT COUNT(*)::int as cnt FROM events');
-      const afterCount = afterResult.rows[0].cnt;
 
       const duration = Date.now() - startTime;
 
-      if (deleteResult.rowCount && deleteResult.rowCount > 0) {
-        logger.info('[cleaner] Cleanup complete', {
-          deleted: deleteResult.rowCount,
-          remainingAfter: afterCount,
+      if (result.rows.length > 0) {
+        const dropped = result.rows
+          .filter((r: any) => r.drop_chunks)
+          .map((r: any) => r.drop_chunks);
+        logger.info('[cleaner] Chunks dropped', {
+          chunks: dropped.length,
+          names: dropped,
           duration: `${duration}ms`,
         });
       }
@@ -71,7 +64,7 @@ export class DataCleaner {
   }
 
   /**
-   * Estimate storage used by the events table
+   * Estimate storage used by the events table (O(1): reads from checkpoint counters, no full scan)
    */
   async getStorageStats(): Promise<{
     totalRows: number;
@@ -80,26 +73,25 @@ export class DataCleaner {
     chains: Record<string, number>;
   }> {
     try {
-      const [{ rows: totalRows }, { rows: newest }, { rows: oldest }, { rows: chainRows }] = await Promise.all([
-        pool.query('SELECT COUNT(*)::int as cnt FROM events'),
-        pool.query('SELECT MAX(block_number)::bigint as max_block FROM events'),
-        pool.query('SELECT MIN(block_number)::bigint as min_block FROM events'),
-        pool.query(
-          'SELECT chain, COUNT(*)::int as cnt FROM events GROUP BY chain ORDER BY cnt DESC'
-        ),
-      ]);
+      // All stats from event_checkpoints — O(1) indexed reads
+      const { rows: cps } = await pool.query(
+        'SELECT chain, event_count, last_block FROM event_checkpoints WHERE collector_name = $1',
+        ['block_scanner']
+      );
 
+      let totalRows = 0;
+      let newestBlock = 0;
       const chains: Record<string, number> = {};
-      for (const row of chainRows) {
-        chains[row.chain] = row.cnt;
+
+      for (const cp of cps) {
+        const count = parseInt(cp.event_count || '0', 10);
+        const block = parseInt(cp.last_block || '0', 10);
+        totalRows += count;
+        if (block > newestBlock) newestBlock = block;
+        chains[cp.chain] = count;
       }
 
-      return {
-        totalRows: totalRows[0].cnt,
-        newestBlock: newest[0].max_block || 0,
-        oldestBlock: oldest[0].min_block || 0,
-        chains,
-      };
+      return { totalRows, newestBlock, oldestBlock: 0, chains };
     } catch (err: any) {
       logger.error('[cleaner] Failed to get storage stats', { error: err.message });
       return { totalRows: 0, newestBlock: 0, oldestBlock: 0, chains: {} };

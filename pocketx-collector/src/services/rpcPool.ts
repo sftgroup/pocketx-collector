@@ -19,6 +19,8 @@ const REQUEST_TIMEOUT_MS = 15_000;
 export class RpcPoolManager {
   private config: RpcPoolConfig;
   private healthCheckTimer: NodeJS.Timeout | null = null;
+  // Round-robin cursor per chain
+  private roundRobin: Map<string, number> = new Map();
 
   constructor(config: RpcPoolConfig) {
     this.config = config;
@@ -31,7 +33,7 @@ export class RpcPoolManager {
   activeEndpoints(chain: string): RpcEndpoint[] {
     const eps = this.config[chain];
     if (!eps) return [];
-    return eps.filter((ep) => ep.status !== 'down');
+    return eps.filter((ep) => ep.status !== 'down' && ep.status !== 'degraded');
   }
 
   // ================================================================
@@ -43,6 +45,20 @@ export class RpcPoolManager {
       count += this.activeEndpoints(chain).length;
     }
     return count;
+  }
+
+  // ================================================================
+  // Public: round-robin — pick next healthy endpoint for a chain
+  // ================================================================
+  pickEndpoint(chain: string): RpcEndpoint {
+    const activeEps = this.activeEndpoints(chain);
+    if (activeEps.length === 0) {
+      throw new Error(`No active RPC endpoints for chain ${chain}`);
+    }
+    const cursor = this.roundRobin.get(chain) || 0;
+    const idx = cursor % activeEps.length;
+    this.roundRobin.set(chain, cursor + 1);
+    return activeEps[idx];
   }
 
   // ================================================================
@@ -70,6 +86,9 @@ export class RpcPoolManager {
     fromBlock: number,
     toBlock: number
   ): Promise<any[]> {
+    if (chain === 'solana') {
+      return this.fetchSolanaBlocks(endpoint, fromBlock, toBlock);
+    }
     const blocks: any[] = [];
     for (let bn = fromBlock; bn <= toBlock; bn++) {
       try {
@@ -77,6 +96,37 @@ export class RpcPoolManager {
         if (block) blocks.push(block);
       } catch (err: any) {
         logger.warn(`[rpc-pool] Failed to fetch block ${bn} on ${chain} via ${endpoint.key}`, {
+          error: err.message,
+        });
+      }
+    }
+    return blocks;
+  }
+
+  /**
+   * Solana block fetch — `getBlock` returns full blocks with transactions & token balances
+   */
+  private async fetchSolanaBlocks(
+    endpoint: RpcEndpoint,
+    fromSlot: number,
+    toSlot: number
+  ): Promise<any[]> {
+    const blocks: any[] = [];
+    for (let slot = fromSlot; slot <= toSlot; slot++) {
+      try {
+        const result = await this.rpcCall(endpoint, 'getBlock', [
+          slot,
+          {
+            maxSupportedTransactionVersion: 0,
+            transactionDetails: 'full',
+            rewards: false,
+          } as any,
+        ]);
+        if (result) {
+          blocks.push(result);
+        }
+      } catch (err: any) {
+        logger.warn(`[rpc-pool] Failed to fetch solana slot ${slot} via ${endpoint.key}`, {
           error: err.message,
         });
       }
@@ -107,7 +157,9 @@ export class RpcPoolManager {
     if (activeEps.length === 0) {
       throw new Error(`No active RPC endpoints for chain ${chain}`);
     }
-    // Try the first healthy endpoint
+    if (chain === 'solana') {
+      return this.rpcCall(activeEps[0], 'getSlot', []).then((r: any) => parseInt(r, 10) || 0);
+    }
     return this.rpcCall(activeEps[0], 'eth_blockNumber', []).then(
       (hex: string) => parseInt(hex, 16)
     );
@@ -195,6 +247,7 @@ export class RpcPoolManager {
     }
 
     // All retries exhausted → mark endpoint as degraded/down
+    this.markEndpointDegraded(endpoint);
     throw lastError || new Error(`RPC call ${method} failed after ${MAX_RETRIES} attempts`);
   }
 
@@ -214,6 +267,19 @@ export class RpcPoolManager {
   }
 
   // ================================================================
+  // Internal: mark endpoint as degraded after failed call
+  // ================================================================
+  private markEndpointDegraded(endpoint: RpcEndpoint): void {
+    if (endpoint.status === 'healthy') {
+      endpoint.status = 'degraded';
+      logger.warn(`[rpc-pool] Endpoint degraded: ${endpoint.key} (fetch failed)`);
+    } else if (endpoint.status === 'degraded') {
+      endpoint.status = 'down';
+      logger.error(`[rpc-pool] Endpoint down: ${endpoint.key} (fetch failed)`);
+    }
+  }
+
+  // ================================================================
   // Internal: health checks + auto-failover
   // ================================================================
   private startHealthChecks(): void {
@@ -230,13 +296,24 @@ export class RpcPoolManager {
     for (const [chain, endpoints] of Object.entries(this.config)) {
       for (const ep of endpoints) {
         try {
-          const blockHex = await this.rpcCall(ep, 'eth_blockNumber', []);
-          const blockNum = parseInt(blockHex, 16);
-          if (blockNum > 0) {
-            if (ep.status !== 'healthy') {
-              logger.info(`[rpc-pool] Endpoint recovered: ${ep.key} (${chain})`);
+          // Solana uses getHealth, EVM uses eth_blockNumber
+          const method = chain === 'solana' ? 'getHealth' : 'eth_blockNumber';
+          const result = await this.rpcCall(ep, method, []);
+          if (chain === 'solana') {
+            if (result === 'ok') {
+              if (ep.status !== 'healthy') {
+                logger.info(`[rpc-pool] Endpoint recovered: ${ep.key} (${chain})`);
+              }
+              ep.status = 'healthy';
             }
-            ep.status = 'healthy';
+          } else {
+            const blockNum = parseInt(result, 16);
+            if (blockNum > 0) {
+              if (ep.status !== 'healthy') {
+                logger.info(`[rpc-pool] Endpoint recovered: ${ep.key} (${chain})`);
+              }
+              ep.status = 'healthy';
+            }
           }
         } catch {
           // Mark degraded

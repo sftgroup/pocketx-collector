@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX — Safe Multi-Sig</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #6366F1; --brand-secondary: #8B5CF5;
+  --brand-gradient: linear-gradient(135deg, #6366F1, #8B5CF5);
+  --surface-bg: #07070F; --surface-card: #111122;
+  --surface-hover: #181830; --surface-input: #151528;
+  --text-primary: #F0F0F5; --text-secondary: #8888AA;
+  --text-tertiary: #555577; --text-brand: #818CF8;
+  --success: #34D399; --warning: #FBBF24; --error: #F87171; --info: #60A5FA;
+  --border: #1E1E3A; --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 24px; --radius-full: 9999px;
+  --sidebar-w: 240px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--surface-bg); color: var(--text-primary); display:flex; min-height:100vh;
+}
+/* Sidebar */
+.sidebar { width:var(--sidebar-w); height:100vh; position:fixed; left:0; top:0; background:rgba(17,17,34,0.80); backdrop-filter:blur(20px); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:20px 16px; z-index:50; }
+.sidebar-logo { display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; padding:8px 12px; margin-bottom:32px; }
+.sidebar-logo-icon { width:32px; height:32px; background:var(--brand-gradient); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:white; }
+.sidebar-nav { flex:1; display:flex; flex-direction:column; gap:4px; }
+.sidebar-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--radius-md); font-size:14px; font-weight:500; color:var(--text-secondary); transition:all 0.15s; cursor:pointer; border:none; background:none; width:100%; text-align:left; }
+.sidebar-item:hover { background:var(--surface-hover); color:var(--text-primary); }
+.sidebar-item.active { background:rgba(99,102,241,0.12); color:var(--text-brand); }
+.sidebar-item-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:16px; opacity:0.8; }
+.sidebar-item.active .sidebar-item-icon { opacity:1; }
+.sidebar-divider { height:1px; background:var(--border); margin:12px 0; }
+.sidebar-footer { padding-top:12px; border-top:1px solid var(--border); }
+.sidebar-addr { font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-tertiary); padding:8px 12px; word-break:break-all; }
+.sidebar-status { display:flex; align-items:center; gap:6px; padding:4px 12px; }
+.sidebar-dot { width:6px; height:6px; background:var(--success); border-radius:50%; }
+.sidebar-net { font-size:12px; color:var(--text-secondary); }
+
+/* Main */
+.main { margin-left:var(--sidebar-w); flex:1; padding:32px 40px; max-width:calc(100vw - var(--sidebar-w)); }
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; }
+.topbar-left h1 { font-size:24px; font-weight:700; letter-spacing:-0.5px; }
+.topbar-left p { font-size:13px; color:var(--text-secondary); margin-top:2px; }
+.btn-primary { padding:10px 24px; background:var(--brand-gradient); border-radius:var(--radius-full); color:white; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; }
+.btn-primary:hover { box-shadow:0 0 20px rgba(99,102,241,0.35); }
+.btn-outline { padding:10px 20px; background:transparent; border:1px solid var(--border); border-radius:var(--radius-full); color:var(--text-primary); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-outline:hover { border-color:var(--brand-primary); }
+
+/* Safe Cards */
+.safe-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:20px; margin-bottom:32px; }
+.safe-card { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-xl); padding:28px; position:relative; transition:border-color 0.2s; cursor:pointer; }
+.safe-card:hover { border-color:var(--brand-primary); }
+.safe-card-name { font-size:18px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.safe-card-addr { font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-tertiary); }
+.safe-card-meta { margin-top:16px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+.safe-meta-item { text-align:center; }
+.safe-meta-value { font-size:20px; font-weight:700; }
+.safe-meta-label { font-size:10px; color:var(--text-tertiary); text-transform:uppercase; margin-top:2px; }
+.safe-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:var(--radius-full); font-size:11px; font-weight:600; }
+.safe-badge.active { background:rgba(52,211,153,0.12); color:var(--success); }
+
+/* Detailed Safe View */
+.safe-detail { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-xl); padding:32px; max-width:800px; }
+.safe-detail-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+.safe-info-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-bottom:24px; }
+.safe-info-item { background:var(--surface-input); border-radius:var(--radius-md); padding:14px 16px; }
+.safe-info-label { font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:600; margin-bottom:4px; }
+.safe-info-value { font-size:14px; font-weight:600; font-family:'JetBrains Mono', monospace; font-size:13px; }
+
+/* Owner List */
+.owner-list { margin-bottom:24px; }
+.owner-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--surface-input); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:8px; }
+.owner-avatar { width:36px; height:36px; background:var(--brand-gradient); border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:white; }
+.owner-info { flex:1; min-width:0; }
+.owner-name { font-size:14px; font-weight:600; }
+.owner-addr { font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-tertiary); }
+.owner-badge { padding:4px 10px; border-radius:var(--radius-full); font-size:10px; font-weight:600; }
+.owner-badge.you { background:rgba(99,102,241,0.12); color:var(--text-brand); }
+.owner-badge.other { background:var(--surface-hover); color:var(--text-secondary); }
+.remove-btn { padding:6px 12px; background:transparent; border:1px solid var(--error); border-radius:var(--radius-sm); color:var(--error); font-size:11px; cursor:pointer; transition:all 0.15s; }
+.remove-btn:hover { background:rgba(248,113,113,0.10); }
+
+/* Proposals / Transactions */
+.proposal-list { margin-top:24px; }
+.proposal-item { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--surface-input); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:8px; }
+.proposal-icon { width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.proposal-icon.pending { background:rgba(251,191,36,0.12); }
+.proposal-icon.executed { background:rgba(52,211,153,0.12); }
+.proposal-icon.rejected { background:rgba(248,113,113,0.12); }
+.proposal-info { flex:1; min-width:0; }
+.proposal-title { font-size:13px; font-weight:600; }
+.proposal-detail { font-size:11px; color:var(--text-tertiary); font-family:'JetBrains Mono', monospace; }
+.proposal-status { font-size:11px; font-weight:600; }
+.proposal-status.pending { color:var(--warning); }
+.proposal-status.executed { color:var(--success); }
+.approve-btn { padding:6px 14px; background:var(--success); border:none; border-radius:var(--radius-full); color:#07070F; font-size:11px; font-weight:700; cursor:pointer; margin-right:6px; }
+.reject-proposal-btn { padding:6px 14px; background:transparent; border:1px solid var(--error); border-radius:var(--radius-full); color:var(--error); font-size:11px; font-weight:600; cursor:pointer; }
+
+@media (max-width:768px) { .sidebar { display:none; } .main { margin-left:0; padding:20px 16px; max-width:100vw; } .safe-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="sidebar-logo-icon">⚡</div>PocketX</div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item"><span class="sidebar-item-icon">📊</span> Dashboard</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">💸</span> Send</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">📥</span> Receive</button>
+    <button class="sidebar-item active" disabled><span class="sidebar-item-icon">🛡️</span> Safe</button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-item"><span class="sidebar-item-icon">📋</span> History</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">⚙️</span> Settings</button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-status"><div class="sidebar-dot"></div><span class="sidebar-net">Sepolia Testnet</span></div>
+    <div class="sidebar-addr">0x84CA...61795C</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Safe · Multi-Sig</h1>
+      <p>On-chain multi-signature wallet management</p>
+    </div>
+    <button class="btn-primary">+ New Safe</button>
+  </div>
+
+  <!-- Safe Overview Cards -->
+  <div class="safe-grid">
+    <div class="safe-card">
+      <div class="safe-card-name">🛡️ Treasury Safe <span class="safe-badge active">Active</span></div>
+      <div class="safe-card-addr">0xbF9c77478b81818Ee44D07D0cF3986168c6b77ea</div>
+      <div class="safe-card-meta">
+        <div class="safe-meta-item"><div class="safe-meta-value">0.0099</div><div class="safe-meta-label">ETH Balance</div></div>
+        <div class="safe-meta-item"><div class="safe-meta-value">1/2</div><div class="safe-meta-label">Threshold</div></div>
+        <div class="safe-meta-item"><div class="safe-meta-value">2</div><div class="safe-meta-label">Owners</div></div>
+      </div>
+    </div>
+    <div class="safe-card" style="display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--text-tertiary);">
+      <span style="font-size:32px;">+</span>
+      <span style="font-size:14px; font-weight:600;">Create New Safe</span>
+    </div>
+  </div>
+
+  <!-- Safe Detail -->
+  <div class="safe-detail">
+    <div class="safe-detail-header">
+      <div>
+        <h2 style="font-size:20px; font-weight:700; margin-bottom:4px;">Treasury Safe</h2>
+        <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-tertiary);">0xbF9c77478b81818Ee44D07D0cF3986168c6b77ea</span>
+      </div>
+      <span class="safe-badge active">● Active</span>
+    </div>
+
+    <div class="safe-info-grid">
+      <div class="safe-info-item">
+        <div class="safe-info-label">Balance</div>
+        <div class="safe-info-value">0.0099 ETH</div>
+      </div>
+      <div class="safe-info-item">
+        <div class="safe-info-label">Threshold</div>
+        <div class="safe-info-value">1 of 2 signatures</div>
+      </div>
+      <div class="safe-info-item">
+        <div class="safe-info-label">Network</div>
+        <div class="safe-info-value">Sepolia (11155111)</div>
+      </div>
+      <div class="safe-info-item">
+        <div class="safe-info-label">Nonce</div>
+        <div class="safe-info-value">0</div>
+      </div>
+    </div>
+
+    <!-- Owner List -->
+    <h3 style="font-size:14px; font-weight:600; margin-bottom:10px; color:var(--text-secondary);">OWNERS</h3>
+    <div class="owner-list">
+      <div class="owner-item">
+        <div class="owner-avatar">S</div>
+        <div class="owner-info">
+          <div class="owner-name">stevenwang</div>
+          <div class="owner-addr">0x0103ACB65c3e8E629d70569834801BD98C925a3B</div>
+        </div>
+        <span class="owner-badge you">You</span>
+      </div>
+      <div class="owner-item">
+        <div class="owner-avatar" style="background:linear-gradient(135deg, #8B5CF5, #A78BFA);">K</div>
+        <div class="owner-info">
+          <div class="owner-name">Key8 (Wallet B)</div>
+          <div class="owner-addr">0x84CA376e60440a76837a5390fA0518cdED448324</div>
+        </div>
+        <span class="owner-badge other">Owner</span>
+        <button class="remove-btn">Remove</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:24px;">
+      <button class="btn-outline">+ Add Owner</button>
+      <button class="btn-outline">Change Threshold</button>
+    </div>
+
+    <!-- Proposals -->
+    <h3 style="font-size:14px; font-weight:600; margin-bottom:10px; color:var(--text-secondary);">PENDING PROPOSALS</h3>
+    <div class="proposal-list">
+      <div class="proposal-item">
+        <div class="proposal-icon pending">⏳</div>
+        <div class="proposal-info">
+          <div class="proposal-title">Send 0.01 ETH to steven</div>
+          <div class="proposal-detail">Tx ID: prop_8a3f • Created 2h ago</div>
+        </div>
+        <span class="proposal-status pending">Awaiting 2/2</span>
+        <button class="approve-btn">Approve</button>
+        <button class="reject-proposal-btn">Reject</button>
+      </div>
+      <div class="proposal-item">
+        <div class="proposal-icon executed">✓</div>
+        <div class="proposal-info">
+          <div class="proposal-title">Add Owner: 0x84CA...61795C</div>
+          <div class="proposal-detail">Block 11181460 • Executed</div>
+        </div>
+        <span class="proposal-status executed">Executed</span>
+      </div>
+      <div class="proposal-item">
+        <div class="proposal-icon rejected">✕</div>
+        <div class="proposal-info">
+          <div class="proposal-title">Remove Owner: 0x84CA...61795C</div>
+          <div class="proposal-detail">Block 11181463 • Executed</div>
+        </div>
+        <span class="proposal-status executed" style="color:var(--error);">Removed</span>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

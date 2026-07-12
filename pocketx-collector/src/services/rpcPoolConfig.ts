@@ -60,18 +60,6 @@ export function buildRpcPoolConfig(): RpcPoolConfig {
       envOr('ETH_RPC_URL', process.env.INFURA_ETH_URL || ''),
       envOr('ETH_RPC_URL_2', ''),
     ]),
-    polygon: endpointsForChain('polygon', [
-      envOr('POLYGON_RPC_URL', ''),
-      envOr('POLYGON_RPC_URL_2', ''),
-    ]),
-    arbitrum: endpointsForChain('arbitrum', [
-      envOr('ARBITRUM_RPC_URL', ''),
-      envOr('ARBITRUM_RPC_URL_2', ''),
-    ]),
-    optimism: endpointsForChain('optimism', [
-      envOr('OPTIMISM_RPC_URL', ''),
-      envOr('OPTIMISM_RPC_URL_2', ''),
-    ]),
     bsc: endpointsForChain('bsc', [
       envOr('BSC_RPC_URL', ''),
       envOr('BSC_RPC_URL_2', ''),
@@ -79,6 +67,10 @@ export function buildRpcPoolConfig(): RpcPoolConfig {
     base: endpointsForChain('base', [
       envOr('BASE_RPC_URL', ''),
       envOr('BASE_RPC_URL_2', ''),
+    ]),
+    solana: endpointsForChain('solana', [
+      envOr('SOLANA_RPC_URL', process.env.HELIUS_SOLANA_URL || 'https://api.mainnet-beta.solana.com'),
+      envOr('SOLANA_RPC_URL_2', ''),
     ]),
   });
 }

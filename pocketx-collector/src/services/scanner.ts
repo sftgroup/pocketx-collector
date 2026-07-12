@@ -2,9 +2,11 @@ import { RpcPoolManager } from './rpcPool';
 import { buildRpcPoolConfig, mergeDbEndpoints } from './rpcPoolConfig';
 import {
   normalizeBlock,
+  normalizeSolanaBlock,
   insertEvents,
   updateCheckpoint,
   getCheckpoint,
+  incrementEventCount,
   NormalizedEvent,
 } from './normalizer';
 import { logger } from '../logger';
@@ -19,15 +21,20 @@ import { logger } from '../logger';
  *  4. Normalize events → insert into events table
  *  5. Update checkpoint
  *
- * Supports 7 chains: sepolia, ethereum, polygon, arbitrum, optimism, bsc, base
+ * Supports 5 chains: sepolia, ethereum, bsc, base, solana
  */
 
 const SCAN_INTERVAL_MS = 10_000; // 10s per cycle
-const BLOCKS_PER_CYCLE = 50;     // Max blocks to scan per cycle per chain
+const BLOCKS_PER_CYCLE = 5;      // Max blocks to scan per cycle per chain (reduced for Infura free tier)
 const CONFIRMATION_OFFSET = 3;   // Scan up to latest - 3 blocks (avoid reorgs)
 
-// Chains to scan (all active by default)
-const ACTIVE_CHAINS = ['sepolia', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'base'];
+// Per-chain blocks-per-cycle overrides (solana: 1 slot has ~3k events)
+const BLOCKS_PER_CYCLE_OVERRIDE: Record<string, number> = {
+  solana: 1,   // 1 Solana slot ~= 3,500 SPL events, same order as 5 EVM blocks
+};
+
+// Chains to scan
+const ACTIVE_CHAINS = ['sepolia', 'ethereum', 'bsc', 'base', 'solana'];
 
 export class BlockScanner {
   private rpcPool: RpcPoolManager;
@@ -52,11 +59,20 @@ export class BlockScanner {
   }
 
   /**
+   * Reload RPC config from DB (called after adding/removing endpoints via admin)
+   */
+  async refreshConfig(): Promise<void> {
+    const config = buildRpcPoolConfig();
+    await mergeDbEndpoints(config);
+    this.rpcPool.shutdown();
+    this.rpcPool = new RpcPoolManager(config);
+    logger.info(`[scanner] Config refreshed: ${this.rpcPool.totalActiveEndpoints()} active endpoints`);
+  }
+
+  /**
    * Start scanning all chains
    */
   async start(): Promise<void> {
-    // Merge DB endpoints first
-    await this.init();
     logger.info('[scanner] Block Scanner starting', {
       chains: ACTIVE_CHAINS.length,
       endpoints: this.rpcPool.totalActiveEndpoints(),
@@ -106,45 +122,33 @@ export class BlockScanner {
 
       // 2. Get checkpoint
       const checkpoint = await getCheckpoint(chain, 'block_scanner');
-      const fromBlock = checkpoint > 0 ? checkpoint + 1 : Math.max(safeLatest - BLOCKS_PER_CYCLE, 0);
+      const batchSize = BLOCKS_PER_CYCLE_OVERRIDE[chain] ?? BLOCKS_PER_CYCLE;
+      const fromBlock = checkpoint > 0 ? checkpoint + 1 : Math.max(safeLatest - batchSize, 0);
 
       if (fromBlock > safeLatest) {
         state.scanning = false;
         return; // Nothing new to scan
       }
 
-      const toBlock = Math.min(safeLatest, fromBlock + BLOCKS_PER_CYCLE);
+      const toBlock = Math.min(safeLatest, fromBlock + batchSize - 1);
       const blockCount = toBlock - fromBlock + 1;
 
       // 3. Generate block numbers
-      const allBlocks = Array.from({ length: blockCount }, (_, i) => fromBlock + i);
+      const blocks = Array.from({ length: blockCount }, (_, i) => fromBlock + i);
 
-      // 4. Epoch allocation: split across endpoints
-      const chunks = this.rpcPool.splitBlocksAcrossEndpoints(chain, allBlocks);
+      // 4. Round-robin: pick one endpoint per cycle
+      const endpoint = this.rpcPool.pickEndpoint(chain);
 
-      // 5. Parallel fetch + normalize + insert
-      const results = await Promise.allSettled(
-        chunks.map(({ endpoint, blocks }) =>
-          this.fetchAndProcessBlockRange(chain, endpoint, blocks)
-        )
-      );
+      // 5. Fetch + normalize + insert
+      const totalInserted = await this.fetchAndProcessBlockRange(chain, endpoint, blocks);
 
-      // Count inserted events
-      let totalInserted = 0;
-      for (const r of results) {
-        if (r.status === 'fulfilled') totalInserted += r.value;
+      // 6. Update checkpoint + event count (count first to avoid drift)
+      if (totalInserted > 0) {
+        await incrementEventCount(chain, totalInserted);
+        logger.info(`[scanner] ${chain}: ${fromBlock}→${toBlock} via ${endpoint.key} (${blockCount} blocks, ${totalInserted} events)`);
       }
-
-      // 6. Update checkpoint
       await updateCheckpoint(chain, 'block_scanner', toBlock);
       state.lastError = null;
-
-      if (totalInserted > 0) {
-        logger.info(`[scanner] ${chain}: ${fromBlock}→${toBlock} (${blockCount} blocks)`, {
-          events: totalInserted,
-          endpoints: activeEps.length,
-        });
-      }
     } catch (err: any) {
       state.lastError = err.message;
       logger.error(`[scanner] Cycle failed for ${chain}`, { error: err.message });
@@ -167,7 +171,9 @@ export class BlockScanner {
       try {
         const rawBlock = await this.rpcPool.fetchBlockRange(endpoint, chain, blockNum, blockNum);
         if (rawBlock.length > 0) {
-          const normalized = normalizeBlock(rawBlock[0], chain);
+          const normalized = chain === 'solana'
+            ? normalizeSolanaBlock(rawBlock[0])
+            : normalizeBlock(rawBlock[0], chain);
           if (normalized.length > 0) {
             const inserted = await insertEvents(normalized);
             totalInserted += inserted;

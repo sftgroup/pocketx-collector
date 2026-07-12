@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX — The Smart Multi-Chain Wallet</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='Inter,sans-serif' font-weight='700' font-size='18'%3EPX%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark-50: #f0f0f0;
+  --dark-100: #e0e0e0;
+  --dark-200: #c0c0c0;
+  --dark-300: #a0a0a0;
+  --dark-400: #808080;
+  --dark-500: #606060;
+  --dark-600: #404040;
+  --dark-700: #2a2a2a;
+  --dark-800: #1a1a1a;
+  --dark-900: #111111;
+  --dark-950: #0a0a0a;
+  --accent: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-green: #10b981;
+  --accent-red: #ef4444;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --accent-orange: #f59e0b;
+}
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:var(--dark-950); color:var(--dark-100); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+a { color:inherit;text-decoration:none; }
+button { cursor:pointer;border:none;background:none;font:inherit;color:inherit; }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-thumb { background:var(--dark-600); border-radius:9999px; }
+
+/* Background glows */
+.bg-glow { position:fixed; border-radius:50%; filter:blur(180px); opacity:0.15; pointer-events:none; z-index:0; }
+.bg-glow-1 { width:600px; height:600px; background:var(--accent); top:-200px; left:-200px; }
+.bg-glow-2 { width:500px; height:500px; background:var(--accent-purple); bottom:-150px; right:-150px; }
+.bg-glow-3 { width:400px; height:400px; background:var(--accent-cyan); top:50%; left:50%; transform:translate(-50%,-50%); }
+
+.container { max-width:1200px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+
+/* Nav */
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(20px); background:rgba(10,10,10,0.8); border-bottom:1px solid rgba(255,255,255,0.05); }
+.nav-inner { max-width:1200px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+.nav-logo { display:flex; align-items:center; gap:10px; }
+.nav-logo-icon { width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#fff; }
+.nav-logo-text { font-size:20px; font-weight:700; color:#fff; }
+.nav-logo-text span { color:var(--accent); }
+.nav-links { display:flex; align-items:center; gap:32px; }
+.nav-link { font-size:14px; color:var(--dark-300); font-weight:500; transition:color 0.2s; }
+.nav-link:hover { color:#fff; }
+.btn-nav { padding:8px 20px; background:var(--accent); color:#fff; font-size:14px; font-weight:600; border-radius:10px; transition:all 0.2s; box-shadow:0 0 20px rgba(99,102,241,0.3); }
+.btn-nav:hover { background:var(--accent-600); transform:translateY(-1px); }
+
+/* Hero */
+.hero { padding:160px 0 100px; text-align:center; position:relative; z-index:1; }
+.hero-badge { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); border-radius:100px; font-size:13px; color:var(--accent); font-weight:500; margin-bottom:32px; }
+.hero-badge-dot { width:6px; height:6px; background:var(--accent-green); border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.hero h1 { font-size:clamp(40px,7vw,72px); font-weight:900; color:#fff; line-height:1.1; letter-spacing:-0.03em; margin-bottom:24px; }
+.hero h1 span { background:linear-gradient(135deg,var(--accent),var(--accent-purple),var(--accent-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.hero p { font-size:18px; color:var(--dark-300); max-width:600px; margin:0 auto 40px; line-height:1.7; }
+.hero-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.btn-hero-primary { padding:14px 36px; background:var(--accent); color:#fff; font-size:16px; font-weight:600; border-radius:14px; transition:all 0.2s; text-decoration:none; box-shadow:0 0 30px rgba(99,102,241,0.3); }
+.btn-hero-primary:hover { background:var(--accent-600); transform:translateY(-2px); box-shadow:0 0 40px rgba(99,102,241,0.5); }
+.btn-hero-secondary { padding:14px 36px; background:rgba(255,255,255,0.05); color:var(--dark-200); font-size:16px; font-weight:600; border-radius:14px; border:1px solid rgba(255,255,255,0.1); transition:all 0.2s; text-decoration:none; }
+.btn-hero-secondary:hover { background:rgba(255,255,255,0.1); color:#fff; }
+
+/* Stats strip */
+.stats { display:flex; justify-content:center; gap:64px; padding:0 0 80px; flex-wrap:wrap; position:relative; z-index:1; }
+.stat-item { text-align:center; }
+.stat-value { font-size:36px; font-weight:800; color:#fff; letter-spacing:-0.02em; }
+.stat-label { font-size:13px; color:var(--dark-400); margin-top:4px; }
+
+/* Sections */
+.section { padding:100px 0; position:relative; z-index:1; }
+.section-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:16px; }
+.section h2 { font-size:clamp(28px,4vw,44px); font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:16px; }
+.section-desc { font-size:16px; color:var(--dark-300); max-width:600px; line-height:1.7; margin-bottom:48px; }
+
+/* Feature cards */
+.feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+.feature-card { padding:32px; border-radius:16px; background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02)); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.05); transition:all 0.3s; }
+.feature-card:hover { border-color:rgba(99,102,241,0.3); transform:translateY(-4px); box-shadow:0 16px 48px rgba(0,0,0,0.4); }
+.feature-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:20px; }
+.feature-card h3 { font-size:18px; font-weight:700; color:#fff; margin-bottom:8px; }
+.feature-card p { font-size:14px; color:var(--dark-400); line-height:1.6; }
+
+/* B2B Section */
+.b2b-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:20px; }
+.b2b-card { padding:40px; border-radius:20px; background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02)); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.05); position:relative; overflow:hidden; transition:all 0.3s; }
+.b2b-card:hover { border-color:rgba(99,102,241,0.3); box-shadow:0 0 40px rgba(99,102,241,0.08); }
+.b2b-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(to right,var(--accent),var(--accent-purple),var(--accent-cyan)); border-radius:20px 20px 0 0; }
+.b2b-icon { width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:24px; }
+.b2b-card h3 { font-size:22px; font-weight:700; color:#fff; margin-bottom:12px; }
+.b2b-card p { font-size:15px; color:var(--dark-400); line-height:1.7; margin-bottom:20px; }
+.b2b-features { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.b2b-feature { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--dark-300); }
+.b2b-feature::before { content:'✓'; color:var(--accent-green); font-weight:700; font-size:12px; }
+.btn-b2b { padding:10px 24px; background:var(--accent); color:#fff; font-size:14px; font-weight:600; border-radius:10px; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+.btn-b2b:hover { background:var(--accent-600); }
+.btn-b2b-outline { padding:10px 24px; background:rgba(99,102,241,0.1); color:var(--accent); font-size:14px; font-weight:600; border-radius:10px; border:1px solid rgba(99,102,241,0.2); transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+.btn-b2b-outline:hover { background:rgba(99,102,241,0.2); }
+
+/* How it works */
+.steps { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+.step { flex:1; min-width:200px; max-width:280px; text-align:center; padding:32px 20px; border-radius:16px; background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); position:relative; }
+.step-num { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-purple)); color:#fff; font-size:20px; font-weight:800; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+.step h4 { font-size:16px; font-weight:700; color:#fff; margin-bottom:8px; }
+.step p { font-size:13px; color:var(--dark-400); line-height:1.6; }
+
+/* CTA */
+.cta { padding:80px 0 120px; text-align:center; position:relative; z-index:1; }
+.cta-card { padding:64px 40px; border-radius:24px; background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05)); border:1px solid rgba(99,102,241,0.15); position:relative; overflow:hidden; }
+.cta-card::before { content:''; position:absolute; inset:0; border-radius:24px; padding:1px; background:linear-gradient(to right,var(--accent),var(--accent-purple),var(--accent-cyan)); -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
+.cta h2 { font-size:clamp(28px,4vw,40px); font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:16px; }
+.cta p { font-size:16px; color:var(--dark-300); max-width:500px; margin:0 auto 32px; line-height:1.7; }
+.cta-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+
+/* Footer */
+.footer { border-top:1px solid rgba(255,255,255,0.05); padding:48px 0 32px; position:relative; z-index:1; }
+.footer-inner { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; }
+.footer-brand { display:flex; align-items:center; gap:10px; }
+.footer-brand span { font-size:16px; font-weight:700; color:var(--dark-300); }
+.footer-brand span b { color:#fff; }
+.footer-links { display:flex; gap:24px; }
+.footer-links a { font-size:14px; color:var(--dark-400); transition:color 0.2s; }
+.footer-links a:hover { color:#fff; }
+.footer-copy { font-size:13px; color:var(--dark-500); }
+.footer-tagline { font-size:13px; color:var(--dark-500); }
+
+@media (max-width:768px) {
+  .nav-links { display:none; }
+  .hero { padding:120px 0 60px; }
+  .stats { gap:32px; }
+  .stat-value { font-size:28px; }
+  .section { padding:60px 0; }
+  .feature-grid { grid-template-columns:1fr; }
+  .b2b-grid { grid-template-columns:1fr; }
+  .footer-inner { flex-direction:column; text-align:center; }
+  .footer-links { justify-content:center; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="bg-glow bg-glow-3"></div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">PX</div>
+      <span class="nav-logo-text">Pocket<span>X</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#b2b" class="nav-link">For Business</a>
+      <a href="#how" class="nav-link">How It Works</a>
+      <a href="#wallet" class="btn-nav">Open Wallet</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      v2.0 — Now with Custodial Wallet
+    </div>
+    <h1>One Wallet,<br><span>Every Chain.</span></h1>
+    <p>PocketX is the smart multi-chain wallet that combines non-custodial freedom with custodial simplicity. Connect any wallet, or create one with just your email — no seed phrases, no stress.</p>
+    <div class="hero-btns">
+      <a href="http://101.33.109.117:6102" class="btn-hero-primary">🚀 Launch Wallet</a>
+      <a href="#b2b" class="btn-hero-secondary">💼 For Business</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-item">
+    <div class="stat-value">8+</div>
+    <div class="stat-label">Supported Chains</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">2</div>
+    <div class="stat-label">Wallet Modes</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">⚡</div>
+    <div class="stat-label">Gas-Free Transfers</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">24/7</div>
+    <div class="stat-label">On-chain Monitoring</div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-label">Features</div>
+    <h2>Everything you need<br>in one wallet.</h2>
+    <p class="section-desc">From self-custody to managed wallets, PocketX adapts to how you want to use crypto.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(99,102,241,0.15);">🔑</div>
+        <h3>Non-Custodial Mode</h3>
+        <p>Connect MetaMask, WalletConnect, or any injected wallet. Your keys, your control. Full DeFi access across 8+ chains.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.15);">📱</div>
+        <h3>Custodial Mode</h3>
+        <p>Create a wallet with just your email. No seed phrases. PocketX manages security — you just send and receive.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.15);">⚡</div>
+        <h3>Gas Sponsorship</h3>
+        <p>Send tokens without holding native gas. PocketX covers transaction fees from the platform gas pool — instant and free for you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.15);">🌐</div>
+        <h3>Multi-Chain Support</h3>
+        <p>ETH, Polygon, Arbitrum, Optimism, BSC, Base, Solana — manage all your assets across chains from a single dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.15);">🔄</div>
+        <h3>Swap & Bridge</h3>
+        <p>Best-price token swaps via multi-DEX routing. Cross-chain bridging with automatic optimal path selection.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.15);">🛡️</div>
+        <h3>Risk Engine</h3>
+        <p>Real-time transaction screening: amount limits, address blacklists, velocity checks — keeping your custodial assets safe.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- B2B -->
+<section class="section" id="b2b">
+  <div class="container">
+    <div class="section-label">For Business</div>
+    <h2>PocketX Enterprise.<br>Custodial wallet infrastructure,<br>ready to integrate.</h2>
+    <p class="section-desc">The same custodial engine powering PocketX — available as APIs, webhooks, and white-label solutions for your platform.</p>
+    <div class="b2b-grid">
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(99,102,241,0.15);">🏦</div>
+        <h3>Custodial Wallet API</h3>
+        <p>Generate HD wallets for your users programmatically. Email-based onboarding, HSM-grade key storage, balance tracking — all via REST API.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">Auto wallet creation on signup</div>
+          <div class="b2b-feature">Multi-chain address generation</div>
+          <div class="b2b-feature">On-chain deposit monitoring</div>
+        </div>
+        <span class="btn-b2b-outline">📖 Read API Docs</span>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(16,185,129,0.15);">📤</div>
+        <h3>Batch Transfer Engine</h3>
+        <p>Send up to 1,000 transactions in one API call. Ideal for payroll, airdrops, rewards distribution. Partial failures don't block the batch.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">1,000 tx per batch</div>
+          <div class="b2b-feature">Real-time progress tracking</div>
+          <div class="b2b-feature">Per-tx success/failure reports</div>
+        </div>
+        <span class="btn-b2b-outline">📖 Read API Docs</span>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(245,158,11,0.15);">🛡️</div>
+        <h3>Risk Control Engine</h3>
+        <p>Plug-and-play transaction screening. Configure limits, blacklists, and velocity rules. Every transaction passes through the engine before signing.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">Configurable per-tx / daily limits</div>
+          <div class="b2b-feature">Address blacklist & allowlist</div>
+          <div class="b2b-feature">New-user velocity limits</div>
+        </div>
+        <span class="btn-b2b-outline">📖 Read API Docs</span>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(139,92,246,0.15);">🔔</div>
+        <h3>Webhook Event Pipeline</h3>
+        <p>Never poll for status again. Receive real-time push events for deposits, withdrawals, failures, and risk blocks. 3 retries with configurable timeout.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">deposit / withdrawal / failed / blocked</div>
+          <div class="b2b-feature">Auto-retry ×3 with backoff</div>
+          <div class="b2b-feature">HMAC-signed for integrity</div>
+        </div>
+        <span class="btn-b2b-outline">📖 Read API Docs</span>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(6,182,212,0.15);">✍️</div>
+        <h3>Signature Policy Engine</h3>
+        <p>Fine-grained signing policies: auto-sign micro-transactions, require approval for mid-range, enforce multi-sig for large amounts.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">&lt;100 USDC: auto-sign</div>
+          <div class="b2b-feature">100–10,000: confirmation required</div>
+          <div class="b2b-feature">&gt;10,000: multi-sig enforced</div>
+        </div>
+        <span class="btn-b2b-outline">📖 Read API Docs</span>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-icon" style="background:rgba(239,68,68,0.15);">🤝</div>
+        <h3>White-Label Solution</h3>
+        <p>Launch your own branded wallet on PocketX infrastructure. Custom domain, your logo, your users — we handle the blockchain complexity.</p>
+        <div class="b2b-features">
+          <div class="b2b-feature">Custom branding & domain</div>
+          <div class="b2b-feature">Dedicated infrastructure</div>
+          <div class="b2b-feature">SLA-backed uptime guarantee</div>
+        </div>
+        <a href="mailto:b2b@pocketx.io" class="btn-b2b">📧 Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <h2>Get started in 3 steps.</h2>
+    <p class="section-desc" style="margin-bottom:48px;">No wallet? No problem. PocketX custodial mode creates everything for you.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Enter Your Email</h4>
+        <p>Start with just your email. We'll send a verification code.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Set a Payment PIN</h4>
+        <p>Create a 6-digit PIN to authorize transactions. Your wallet is generated instantly.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Start Using Your Wallet</h4>
+        <p>Deposit, send, and receive tokens. Gas sponsored by PocketX. That's it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-card">
+      <h2>Ready to try PocketX?</h2>
+      <p>Launch the wallet now — free, no signup required for non-custodial mode. Or create a custodial wallet in 30 seconds.</p>
+      <div class="cta-btns">
+        <a href="http://101.33.109.117:6102" class="btn-hero-primary" style="text-decoration:none;">🚀 Open PocketX Wallet</a>
+        <a href="#b2b" class="btn-hero-secondary" style="text-decoration:none;">💼 Explore B2B APIs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="nav-logo-icon" style="width:28px;height:28px;font-size:15px;">PX</div>
+      <span><b>PocketX</b> v2.0</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://www.feishu.cn/docx/DvDfdukVPozvQqxjW5acEyeZnez" target="_blank">📋 PRD</a>
+      <a href="https://www.feishu.cn/docx/HoQtdvAt7oKbvuxAeL6clbLbnGh" target="_blank">📐 Tech Design</a>
+      <a href="mailto:b2b@pocketx.io">📧 b2b@pocketx.io</a>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div class="footer-copy">© 2026 PocketX. Built by Team6.</div>
+      <div class="footer-tagline">Custodial · Non-Custodial · Multi-Chain</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

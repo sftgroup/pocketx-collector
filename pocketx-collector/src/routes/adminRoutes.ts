@@ -1,81 +1,82 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
+import { Router, Request, Response } from 'express';
 import { asyncHandler, apiResponse } from '../helpers';
-import { authenticate } from '../middleware/auth';
-import { adminBasicAuth } from '../middleware/adminAuth';
-import { config } from '../config';
 import { pool } from '../database';
 import { logger } from '../logger';
 import { getScanner } from '../services/scanner';
 import { getCleaner } from '../services/cleaner';
-
+import { getOkxCollector } from '../services/okxChainOS';
+import { getBinanceCollector } from '../services/binanceFutures';
 const router = Router();
 
-// Simple in-memory token store for admin sessions (survives single process restart)
-const adminSessions = new Map<string, number>();
-const TOKEN_TTL = 12 * 60 * 60 * 1000; // 12 hours
+// ── Env-based endpoints (exposed as read-only to the frontend) ──
+const ENV_CHAINS = ['ethereum', 'bsc', 'base', 'sepolia', 'solana'];
+const ENV_VARS: Record<string, string[]> = {
+  ethereum:  ['ETH_RPC_URL', 'ETH_RPC_URL_2'],
+  bsc:       ['BSC_RPC_URL', 'BSC_RPC_URL_2'],
+  base:      ['BASE_RPC_URL', 'BASE_RPC_URL_2'],
+  sepolia:   ['SEPOLIA_RPC_URL', 'SEPOLIA_RPC_URL_2'],
+  solana:    ['SOLANA_RPC_URL', 'SOLANA_RPC_URL_2'],
+};
 
-function setAdminCookie(res: Response): string {
-  const token = crypto.randomBytes(32).toString('hex');
-  adminSessions.set(token, Date.now());
-  res.cookie('admin_token', token, {
-    httpOnly: true,
-    secure: false, // set to true in production with HTTPS
-    sameSite: 'lax',
-    maxAge: TOKEN_TTL,
-    path: '/',
-  });
-  return token;
+function getEnvEndpoints() {
+  const result: any[] = [];
+  for (const chain of ENV_CHAINS) {
+    for (const envKey of ENV_VARS[chain]) {
+      const url = process.env[envKey];
+      if (!url) continue;
+      result.push({
+        chain,
+        endpoint_key: envKey,
+        url,
+        provider: detectProvider(url),
+        tier: 'free',
+        rpm: 60,
+        rpd: 10_000,
+        enabled: true,
+        source: 'env',
+        _readonly: true,
+      });
+    }
+  }
+  return result;
+}
+
+function detectProvider(url: string): string {
+  if (url.includes('infura')) return 'infura';
+  if (url.includes('alchemy')) return 'alchemy';
+  if (url.includes('blastapi')) return 'blastapi';
+  if (url.includes('publicnode')) return 'publicnode';
+  if (url.includes('1rpc.io')) return '1rpc';
+  if (url.includes('drpc.org')) return 'drpc';
+  if (url.includes('tenderly')) return 'tenderly';
+  if (url.includes('quicknode')) return 'quicknode';
+  return 'custom';
 }
 
 /**
- * POST /api/v2/admin/login
- * No auth — validates username/password, sets cookie token
+ * GET /api/v2/admin/rpc-endpoints
+ * Returns env-based endpoints + DB endpoints merged
  */
-router.post(
-  '/login',
-  asyncHandler(async (req, res) => {
-    const { username, password } = req.body || {};
-    if (!username || !password) {
-      return res.status(400).json(apiResponse(null, 'username and password required', -1));
+router.get(
+  '/rpc-endpoints',
+  asyncHandler(async (_req, res) => {
+    const envEps = getEnvEndpoints();
+    const dbResult = await pool.query(
+      'SELECT chain, endpoint_key, url, provider, tier, rpm, rpd, enabled, created_at, updated_at FROM admin_rpc_config ORDER BY chain, endpoint_key'
+    );
+    // Merge: DB endpoints take priority over env when same chain+key
+    const merged = [...envEps];
+    for (const dbEp of dbResult.rows) {
+      const idx = merged.findIndex(e => e.chain === dbEp.chain && e.endpoint_key === dbEp.endpoint_key);
+      if (idx >= 0) {
+        merged[idx] = { ...dbEp, source: 'db', _readonly: false };
+      } else {
+        merged.push({ ...dbEp, source: 'db', _readonly: false });
+      }
     }
-    if (username === config.admin.username && password === config.admin.password) {
-      setAdminCookie(res);
-      return res.json(apiResponse({ redirect: '/admin' }));
-    }
-    return res.status(401).json(apiResponse(null, 'Invalid credentials', -1));
+    res.json(apiResponse(merged));
   })
 );
-
-/**
- * GET /api/v2/admin/logout
- */
-router.get('/logout', (_req, res) => {
-  res.clearCookie('admin_token', { path: '/' });
-  res.json(apiResponse(null));
-});
-
-// ── Auth middleware for everything below ──
-function adminAuth(req: Request, res: Response, next: NextFunction): void {
-  // Cookie token session
-  const token = req.cookies?.admin_token;
-  if (token && adminSessions.has(token)) {
-    return next();
-  }
-  // Legacy admin_session cookie
-  if (req.cookies?.admin_session === 'valid') {
-    return next();
-  }
-  // Basic Auth header (API access)
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Basic ')) {
-    adminBasicAuth(req, res, next);
-    return;
-  }
-  // JWT (programmatic access)
-  authenticate(req, res, next);
-}
-router.use(adminAuth);
 
 /**
  * POST /api/v2/admin/rpc-endpoint
@@ -100,25 +101,13 @@ router.post(
        VALUES ($1, $2, $3, $4, $5, $6, $7, true)
        ON CONFLICT (chain, endpoint_key)
        DO UPDATE SET url = $3, provider = $4, tier = $5, rpm = $6, rpd = $7, enabled = true, updated_at = NOW()`,
-      [chain.toLowerCase(), endpointKey, url, endpointProvider, endpointTier, endpointRpm, endpointRpd]
+      [chain.toLowerCase(), endpointKey, url.trim(), endpointProvider, endpointTier, endpointRpm, endpointRpd]
     );
 
     logger.info('[admin] RPC endpoint saved', { chain, key: endpointKey });
+    // Refresh scanner's RPC pool so new endpoint is used immediately
+    try { await getScanner().refreshConfig(); } catch {}
     res.json(apiResponse({ chain, key: endpointKey, saved: true }));
-  })
-);
-
-/**
- * GET /api/v2/admin/rpc-endpoints
- * List all configured RPC endpoints
- */
-router.get(
-  '/rpc-endpoints',
-  asyncHandler(async (_req, res) => {
-    const result = await pool.query(
-      'SELECT chain, endpoint_key, url, provider, tier, rpm, rpd, enabled, created_at, updated_at FROM admin_rpc_config ORDER BY chain, endpoint_key'
-    );
-    res.json(apiResponse(result.rows));
   })
 );
 
@@ -135,6 +124,7 @@ router.delete(
       [chain.toLowerCase(), key]
     );
     logger.info('[admin] RPC endpoint removed', { chain, key });
+    try { await getScanner().refreshConfig(); } catch {}
     res.json(apiResponse({ removed: true }));
   })
 );
@@ -152,16 +142,25 @@ router.patch(
       [chain.toLowerCase(), key]
     );
     res.json(apiResponse({ enabled: result.rows[0]?.enabled }));
+    try { await getScanner().refreshConfig(); } catch {}
   })
 );
 
 /**
  * GET /api/v2/admin/dashboard
  * Full dashboard data: scanner status, storage, events count, endpoints
+ * Uses 5s cache to avoid overwhelming DB during RPC storms
  */
+let dashboardCache: { data: any; ts: number } | undefined;
 router.get(
   '/dashboard',
   asyncHandler(async (_req, res) => {
+    const now = Date.now();
+    if (dashboardCache && now - dashboardCache.ts < 5000) {
+      res.json(apiResponse(dashboardCache.data));
+      return;
+    }
+
     const scanner = getScanner();
     const cleaner = getCleaner();
     const scannerHealth = scanner.getHealth();
@@ -205,12 +204,23 @@ router.get(
       }
     }
 
-    res.json(apiResponse({
+    // Binance & OKX health (non-blocking)
+    let binanceHealth: any = { running: false, symbols: 0 };
+    let okxHealth: any = { running: false, active: false, accounts: 0 };
+    try { binanceHealth = getBinanceCollector().getHealth(); } catch {}
+    try { okxHealth = getOkxCollector().getHealth(); } catch {}
+
+    const result = {
       scanner: scannerHealth,
       storage,
       hourly: hourlyStats,
       endpoints: endpoints.rows,
-    }));
+      binance: binanceHealth,
+      okx: okxHealth,
+    };
+
+    dashboardCache = { data: result, ts: now };
+    res.json(apiResponse(result));
   })
 );
 
@@ -242,48 +252,159 @@ router.get(
 );
 
 /**
- * GET /api/v2/admin/dc-subscriptions
- * All Data Center subscriptions (from tenants db)
+ * GET /api/v2/admin/rpc-health
+ * Live health status mapped by URL. Uses 10s cache.
  */
+let rpcHealthCache: { data: any; ts: number } | undefined;
 router.get(
-  '/dc-subscriptions',
+  '/rpc-health',
   asyncHandler(async (_req, res) => {
-    const result = await pool.query(
-      `SELECT name, id as tenant_id, data_plan_id, dc_api_key, dc_api_key_created_at
-       FROM tenants WHERE data_plan_id IS NOT NULL
-       ORDER BY dc_api_key_created_at DESC NULLS LAST`
-    );
-    res.json(apiResponse({ items: result.rows }));
+    const now = Date.now();
+    if (rpcHealthCache && now - rpcHealthCache.ts < 10000) {
+      res.json(apiResponse(rpcHealthCache.data));
+      return;
+    }
+
+    const scanner = getScanner();
+    const rpcPool = (scanner as any).rpcPool;
+    const config = (rpcPool as any).config as Record<string, any[]>;
+
+    const report: any[] = [];
+    const summary = { total: 0, healthy: 0, degraded: 0, down: 0 };
+
+    for (const endpoints of Object.values(config || {})) {
+      for (const ep of (endpoints as any[])) {
+        summary.total++;
+        if (ep.status === 'healthy') summary.healthy++;
+        else if (ep.status === 'degraded') summary.degraded++;
+        else summary.down++;
+        report.push({
+          url: ep.url,
+          status: ep.status,
+          tokens: ep.tokens,
+          rateLimit: ep.rateLimit,
+        });
+      }
+    }
+
+    const result = { report, summary };
+    rpcHealthCache = { data: result, ts: now };
+    res.json(apiResponse(result));
   })
 );
 
-/**
- * GET /api/v2/admin/saas-overview
- * All tenants overview (WaaS/Vault)
- */
-router.get(
-  '/saas-overview',
-  asyncHandler(async (_req, res) => {
-    const result = await pool.query(
-      `SELECT name, status, hot_wallet_address, data_plan_id, created_at
-       FROM tenants ORDER BY created_at DESC`
-    );
-    res.json(apiResponse({ items: result.rows }));
-  })
-);
+// ──────────────────────────────────────────────
+// OKX ChainOS — multi-account management
+// ──────────────────────────────────────────────
+
+// List OKX accounts
+router.get('/okx-accounts', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query(
+    `SELECT id, label, enabled, is_default, last_used_at, status, error_message, created_at, updated_at
+     FROM admin_okx_accounts ORDER BY is_default DESC, id ASC`
+  );
+  // Strip secrets from response
+  const accounts = result.rows.map((r: any) => ({
+    ...r,
+    has_api_key: true, // don't expose the key, just indicate it exists
+  }));
+  res.json(apiResponse(accounts));
+}));
+
+// Add OKX account
+router.post('/okx-accounts', asyncHandler(async (req: Request, res: Response) => {
+  const { label, api_key, api_secret, api_passphrase, is_default } = req.body;
+  if (!label || !api_key || !api_secret || !api_passphrase) {
+    res.status(400).json(apiResponse(null, 'label, api_key, api_secret, api_passphrase required'));
+    return;
+  }
+  const result = await pool.query(
+    `INSERT INTO admin_okx_accounts (label, api_key, api_secret, api_passphrase, is_default)
+     VALUES ($1,$2,$3,$4,$5) RETURNING id, label, enabled, is_default`,
+    [label, api_key, api_secret, api_passphrase, is_default || false]
+  );
+  res.json(apiResponse(result.rows[0]));
+}));
+
+// Update OKX account
+router.put('/okx-accounts/:id', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { label, api_key, api_secret, api_passphrase, enabled, is_default } = req.body;
+  const sets: string[] = [];
+  const vals: any[] = [];
+  let i = 1;
+
+  if (label !== undefined) { sets.push(`label = $${i++}`); vals.push(label); }
+  if (api_key !== undefined) { sets.push(`api_key = $${i++}`); vals.push(api_key); }
+  if (api_secret !== undefined) { sets.push(`api_secret = $${i++}`); vals.push(api_secret); }
+  if (api_passphrase !== undefined) { sets.push(`api_passphrase = $${i++}`); vals.push(api_passphrase); }
+  if (enabled !== undefined) { sets.push(`enabled = $${i++}`); vals.push(enabled); }
+  if (is_default !== undefined) { sets.push(`is_default = $${i++}`); vals.push(is_default); }
+
+  sets.push(`updated_at = NOW()`);
+  vals.push(id);
+
+  await pool.query(`UPDATE admin_okx_accounts SET ${sets.join(', ')} WHERE id = $${i}`, vals);
+  res.json(apiResponse({ updated: true }));
+}));
+
+// Delete OKX account
+router.delete('/okx-accounts/:id', asyncHandler(async (req: Request, res: Response) => {
+  await pool.query('DELETE FROM admin_okx_accounts WHERE id = $1', [req.params.id]);
+  res.json(apiResponse({ deleted: true }));
+}));
+
+// ──────────────────────────────────────────────
+// Market Data API (public + admin)
+// ──────────────────────────────────────────────
+
+// Binance health
+router.get('/binance-health', asyncHandler(async (_req: Request, res: Response) => {
+  const collector = getBinanceCollector();
+  res.json(apiResponse(collector.getHealth()));
+}));
+
+// OKX health
+router.get('/okx-health', asyncHandler(async (_req: Request, res: Response) => {
+  const collector = getOkxCollector();
+  res.json(apiResponse(collector.getHealth()));
+}));
 
 /**
- * GET /api/v2/admin/api-keys
- * List all API keys
+ * GET /api/v2/admin/events/export?format=csv
+ * Export events as CSV (max 10,000 rows)
  */
-router.get(
-  '/api-keys',
-  asyncHandler(async (_req, res) => {
-    const result = await pool.query(
-      'SELECT key_hash, enabled, last_used_at, expires_at FROM api_keys ORDER BY last_used_at DESC NULLS LAST'
-    );
-    res.json(apiResponse(result.rows));
-  })
-);
+router.get('/events/export', asyncHandler(async (req: Request, res: Response) => {
+  const { chain } = req.query;
+  let query = 'SELECT event_id, event_type, chain, block_number, tx_hash, from_address, to_address, contract_address, token_address, token_symbol, amount, collected_at FROM events';
+  const vals: any[] = [];
+  if (chain) { query += ' WHERE chain = $1'; vals.push((chain as string).toLowerCase()); }
+  query += ' ORDER BY block_number DESC LIMIT 10000';
+
+  const result = await pool.query(query, vals);
+  const rows = result.rows;
+
+  if (rows.length === 0) {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=events.csv');
+    return res.send('No data\n');
+  }
+
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(','),
+    ...rows.map((row: any) => headers.map(h => {
+      const v = row[h];
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      // Escape CSV special characters
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(','))
+  ].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename=events.csv');
+  res.send(csv);
+}));
 
 export default router;

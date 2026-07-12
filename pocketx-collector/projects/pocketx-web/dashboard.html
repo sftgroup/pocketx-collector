@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX Dashboard — Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #6366F1; --brand-secondary: #8B5CF5;
+  --brand-gradient: linear-gradient(135deg, #6366F1, #8B5CF5);
+  --surface-bg: #07070F; --surface-card: #111122;
+  --surface-hover: #181830; --surface-input: #151528;
+  --text-primary: #F0F0F5; --text-secondary: #8888AA;
+  --text-tertiary: #555577; --text-brand: #818CF8;
+  --success: #34D399; --warning: #FBBF24; --error: #F87171; --info: #60A5FA;
+  --border: #1E1E3A; --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 24px; --radius-full: 9999px;
+  --sidebar-w: 240px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--surface-bg); color: var(--text-primary); display:flex; min-height:100vh;
+}
+a { text-decoration:none; color:inherit; }
+
+/* === Sidebar === */
+.sidebar {
+  width:var(--sidebar-w); height:100vh; position:fixed; left:0; top:0;
+  background:rgba(17,17,34,0.80); backdrop-filter:blur(20px);
+  border-right:1px solid var(--border); display:flex; flex-direction:column;
+  padding:20px 16px; z-index:50;
+}
+.sidebar-logo { display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; padding:8px 12px; margin-bottom:32px; }
+.sidebar-logo-icon { width:32px; height:32px; background:var(--brand-gradient); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:white; }
+.sidebar-nav { flex:1; display:flex; flex-direction:column; gap:4px; }
+.sidebar-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--radius-md); font-size:14px; font-weight:500; color:var(--text-secondary); transition:all 0.15s; cursor:pointer; border:none; background:none; width:100%; text-align:left; }
+.sidebar-item:hover { background:var(--surface-hover); color:var(--text-primary); }
+.sidebar-item.active { background:rgba(99,102,241,0.12); color:var(--text-brand); }
+.sidebar-item-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:16px; opacity:0.8; }
+.sidebar-item.active .sidebar-item-icon { opacity:1; }
+.sidebar-divider { height:1px; background:var(--border); margin:12px 0; }
+.sidebar-footer { padding-top:12px; border-top:1px solid var(--border); }
+.sidebar-addr { font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-tertiary); padding:8px 12px; word-break:break-all; }
+.sidebar-status { display:flex; align-items:center; gap:6px; padding:4px 12px; }
+.sidebar-dot { width:6px; height:6px; background:var(--success); border-radius:50%; }
+.sidebar-net { font-size:12px; color:var(--text-secondary); }
+
+/* === Main Content === */
+.main { margin-left:var(--sidebar-w); flex:1; padding:32px 40px; max-width:calc(100vw - var(--sidebar-w)); }
+
+/* === Top Bar === */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; }
+.topbar-left h1 { font-size:24px; font-weight:700; letter-spacing:-0.5px; }
+.topbar-left p { font-size:13px; color:var(--text-secondary); margin-top:2px; }
+.topbar-right { display:flex; gap:12px; align-items:center; }
+.topbar-icon { width:40px; height:40px; background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; transition:border-color 0.2s; }
+.topbar-icon:hover { border-color:var(--brand-primary); }
+.avatar { width:40px; height:40px; background:var(--brand-gradient); border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:white; cursor:pointer; }
+
+/* === Mode Bar === */
+.mode-bar { display:inline-flex; gap:2px; padding:3px; background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-full); margin-bottom:28px; }
+.mode-pill { padding:8px 20px; border-radius:var(--radius-full); font-size:12px; font-weight:600; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s; }
+.mode-pill.active { background:var(--brand-gradient); color:white; }
+.mode-dot { width:5px; height:5px; border-radius:50%; }
+.mode-pill.active .mode-dot { background:white; }
+
+/* === Dashboard Grid === */
+.dashboard-grid { display:grid; grid-template-columns:1fr 340px; gap:24px; }
+
+/* === Balance Card === */
+.balance-card { background:linear-gradient(135deg, #111122 0%, #1A1A35 100%); border:1px solid var(--border); border-radius:var(--radius-xl); padding:28px 28px 24px; position:relative; overflow:hidden; }
+.balance-card::before { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; background:radial-gradient(circle, rgba(99,102,241,0.20) 0%, transparent 70%); pointer-events:none; }
+.balance-label { font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.balance-amount { font-size:42px; font-weight:800; letter-spacing:-1px; font-family:'Inter', sans-serif; }
+.balance-amount span { background:var(--brand-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.balance-change { font-size:13px; color:var(--success); margin-top:4px; display:flex; align-items:center; gap:4px; }
+.balance-actions { display:flex; gap:10px; margin-top:20px; }
+.balance-btn { flex:1; padding:10px 0; border-radius:var(--radius-full); font-size:13px; font-weight:600; cursor:pointer; text-align:center; border:none; transition:all 0.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+.balance-btn.primary { background:var(--brand-gradient); color:white; }
+.balance-btn.primary:hover { opacity:0.9; }
+.balance-btn.secondary { background:transparent; color:var(--text-primary); border:1px solid var(--border); }
+.balance-btn.secondary:hover { border-color:var(--brand-primary); }
+
+/* === Quick Actions === */
+.quick-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+.quick-card { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.quick-card:hover { border-color:var(--brand-primary); transform:translateY(-1px); }
+.quick-card-icon { font-size:22px; margin-bottom:8px; }
+.quick-card-title { font-size:12px; font-weight:600; }
+.quick-card-sub { font-size:10px; color:var(--text-tertiary); margin-top:2px; }
+
+/* === Token List === */
+.section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.section-title { font-size:14px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; }
+.section-more { font-size:12px; color:var(--text-brand); cursor:pointer; }
+.token-list { display:flex; flex-direction:column; gap:8px; }
+.token-row { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-lg); cursor:pointer; transition:border-color 0.2s; }
+.token-row:hover { border-color:var(--brand-primary); }
+.token-icon { width:40px; height:40px; border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+.token-icon.eth { background:linear-gradient(135deg, #627EEA, #8B9DFF); }
+.token-icon.usdc { background:linear-gradient(135deg, #2775CA, #5BA0FF); }
+.token-icon.usdt { background:linear-gradient(135deg, #26A17B, #3DDC97); color:#07070F; }
+.token-info { flex:1; min-width:0; }
+.token-name { font-size:14px; font-weight:600; }
+.token-chain { font-size:11px; color:var(--text-tertiary); }
+.token-balance { text-align:right; }
+.token-usd { font-size:14px; font-weight:600; }
+.token-amount { font-size:12px; color:var(--text-secondary); font-family:'JetBrains Mono', monospace; margin-top:2px; }
+.token-change { font-size:11px; font-weight:600; margin-top:2px; }
+.token-change.up { color:var(--success); }
+.token-change.down { color:var(--error); }
+.token-sparkline { width:60px; height:28px; opacity:0.5; }
+
+/* === Right Panel === */
+.right-panel { display:flex; flex-direction:column; gap:20px; }
+
+/* === Activity Feed === */
+.panel-card { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
+.panel-title { font-size:13px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+.activity-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.activity-item:last-child { border-bottom:none; }
+.activity-icon { width:32px; height:32px; border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.activity-icon.sent { background:rgba(96,165,250,0.12); }
+.activity-icon.received { background:rgba(52,211,153,0.12); }
+.activity-info { flex:1; min-width:0; }
+.activity-title { font-size:12px; font-weight:600; }
+.activity-addr { font-size:10px; color:var(--text-tertiary); font-family:'JetBrains Mono', monospace; }
+.activity-meta { text-align:right; }
+.activity-amount { font-size:12px; font-weight:600; }
+.activity-amount.sent { color:var(--info); }
+.activity-amount.received { color:var(--success); }
+.activity-time { font-size:10px; color:var(--text-tertiary); margin-top:1px; }
+
+/* === Gas Info === */
+.gas-card { background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,245,0.04)); border:1px solid rgba(99,102,241,0.20); }
+.gas-stat { display:flex; justify-content:space-between; padding:8px 0; font-size:12px; }
+.gas-stat-label { color:var(--text-secondary); }
+.gas-stat-value { font-weight:600; font-family:'JetBrains Mono', monospace; font-size:11px; }
+.gas-stat-value.good { color:var(--success); }
+
+/* Responsive */
+@media (max-width:1100px) { .dashboard-grid { grid-template-columns:1fr; } }
+@media (max-width:768px) {
+  .sidebar { display:none; }
+  .main { margin-left:0; padding:20px 16px; max-width:100vw; }
+  .balance-amount { font-size:32px; }
+  .quick-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">⚡</div>
+    PocketX
+  </div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item active" disabled>
+      <span class="sidebar-item-icon">📊</span> Dashboard
+    </button>
+    <button class="sidebar-item">
+      <span class="sidebar-item-icon">💸</span> Send
+    </button>
+    <button class="sidebar-item">
+      <span class="sidebar-item-icon">📥</span> Receive
+    </button>
+    <button class="sidebar-item">
+      <span class="sidebar-item-icon">🛡️</span> Safe
+    </button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-item">
+      <span class="sidebar-item-icon">📋</span> History
+    </button>
+    <button class="sidebar-item">
+      <span class="sidebar-item-icon">⚙️</span> Settings
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-status">
+      <div class="sidebar-dot"></div>
+      <span class="sidebar-net">Sepolia Testnet</span>
+    </div>
+    <div class="sidebar-addr">0x84CA...61795C</div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main" id="app-content">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Wallet</h1>
+      <p>Welcome back, steven</p>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-icon">🔔</div>
+      <div class="topbar-icon">🌐</div>
+      <div class="avatar">S</div>
+    </div>
+  </div>
+
+  <!-- Mode Switcher -->
+  <div class="mode-bar">
+    <div class="mode-pill">
+      <span class="mode-dot"></span> Personal
+    </div>
+    <div class="mode-pill active">
+      <span class="mode-dot"></span> Custodial
+    </div>
+    <div class="mode-pill">
+      <span class="mode-dot"></span> Safe
+    </div>
+  </div>
+
+  <!-- Dashboard Grid -->
+  <div class="dashboard-grid">
+    <!-- Left Column -->
+    <div>
+      <!-- Balance Hero -->
+      <div class="balance-card">
+        <div class="balance-label">Total Balance</div>
+        <div class="balance-amount"><span>$12,450.32</span></div>
+        <div class="balance-change">↑ 4.2% this week</div>
+        <div class="balance-actions">
+          <button class="balance-btn primary">↑ Send</button>
+          <button class="balance-btn secondary">↓ Receive</button>
+          <button class="balance-btn secondary">⇄ Swap</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="margin-top:24px;">
+        <div class="quick-grid">
+          <div class="quick-card">
+            <div class="quick-card-icon">🔑</div>
+            <div class="quick-card-title">Add Wallet</div>
+            <div class="quick-card-sub">Import or Create</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-card-icon">🛡️</div>
+            <div class="quick-card-title">Create Safe</div>
+            <div class="quick-card-sub">Multi-sig</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-card-icon">📊</div>
+            <div class="quick-card-title">Analytics</div>
+            <div class="quick-card-sub">Coming soon</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token List -->
+      <div style="margin-top:28px;">
+        <div class="section-header">
+          <div class="section-title">Your Assets</div>
+          <div class="section-more">View All →</div>
+        </div>
+        <div class="token-list">
+          <div class="token-row">
+            <div class="token-icon eth">Ξ</div>
+            <div class="token-info">
+              <div class="token-name">Ethereum</div>
+              <div class="token-chain">ETH · Sepolia</div>
+            </div>
+            <div class="token-sparkline">
+              <svg width="60" height="28" viewBox="0 0 60 28"><path d="M0,20 Q10,18 15,14 Q20,10 25,8 Q30,6 35,12 Q40,18 45,10 Q50,2 55,8 L60,6" fill="none" stroke="#6366F1" stroke-width="1.5"/></svg>
+            </div>
+            <div class="token-balance">
+              <div class="token-usd">$10,234.50</div>
+              <div class="token-amount">4.5823 ETH</div>
+              <div class="token-change up">+3.2%</div>
+            </div>
+          </div>
+          <div class="token-row">
+            <div class="token-icon usdc">$</div>
+            <div class="token-info">
+              <div class="token-name">USD Coin</div>
+              <div class="token-chain">USDC · Sepolia</div>
+            </div>
+            <div class="token-sparkline">
+              <svg width="60" height="28" viewBox="0 0 60 28"><path d="M0,15 Q15,14 20,14 Q25,14 30,13 Q35,14 40,13 Q50,14 55,13 L60,14" fill="none" stroke="#6366F1" stroke-width="1.5"/></svg>
+            </div>
+            <div class="token-balance">
+              <div class="token-usd">$2,000.00</div>
+              <div class="token-amount">2,000.00 USDC</div>
+              <div class="token-change up">0.0%</div>
+            </div>
+          </div>
+          <div class="token-row">
+            <div class="token-icon usdt">₮</div>
+            <div class="token-info">
+              <div class="token-name">Tether USD</div>
+              <div class="token-chain">USDT · Sepolia</div>
+            </div>
+            <div class="token-sparkline">
+              <svg width="60" height="28" viewBox="0 0 60 28"><path d="M0,14 Q20,13 30,14 Q40,13 50,14 L60,13" fill="none" stroke="#6366F1" stroke-width="1.5"/></svg>
+            </div>
+            <div class="token-balance">
+              <div class="token-usd">$215.82</div>
+              <div class="token-amount">215.82 USDT</div>
+              <div class="token-change down">-0.1%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- Recent Activity -->
+      <div class="panel-card">
+        <div class="panel-title">Recent Activity</div>
+        <div class="activity-item">
+          <div class="activity-icon sent">↑</div>
+          <div class="activity-info">
+            <div class="activity-title">Send ETH</div>
+            <div class="activity-addr">0x0103...925a3B</div>
+          </div>
+          <div class="activity-meta">
+            <div class="activity-amount sent">-0.00001 ETH</div>
+            <div class="activity-time">2 min ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon received">↓</div>
+          <div class="activity-info">
+            <div class="activity-title">Received USDC</div>
+            <div class="activity-addr">0x8f12...c2aE</div>
+          </div>
+          <div class="activity-meta">
+            <div class="activity-amount received">+1,000 USDC</div>
+            <div class="activity-time">1 hr ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon sent">↑</div>
+          <div class="activity-info">
+            <div class="activity-title">Multi-sig Proposed</div>
+            <div class="activity-addr">Safe #1 · threshold 2/3</div>
+          </div>
+          <div class="activity-meta">
+            <div class="activity-amount sent" style="color:var(--warning);">Pending</div>
+            <div class="activity-time">3 hr ago</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gas Pool Status -->
+      <div class="panel-card gas-card">
+        <div class="panel-title">Gas Pool Status</div>
+        <div class="gas-stat">
+          <span class="gas-stat-label">Pool Address</span>
+          <span class="gas-stat-value">0x7d5F...2E00</span>
+        </div>
+        <div class="gas-stat">
+          <span class="gas-stat-label">Balance</span>
+          <span class="gas-stat-value good">0.30 ETH</span>
+        </div>
+        <div class="gas-stat">
+          <span class="gas-stat-label">Transactions Sponsored</span>
+          <span class="gas-stat-value">120</span>
+        </div>
+        <div class="gas-stat">
+          <span class="gas-stat-label">Status</span>
+          <span class="gas-stat-value good">Active ✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

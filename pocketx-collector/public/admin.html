@@ -3,207 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PocketX Admin</title>
+<title>PocketX Collector Admin</title>
 <style>
 :root {
-  --bg: #0a0a0f;
-  --card: #111118;
-  --border: #1e1e2e;
-  --text: #cdd6f4;
-  --dim: #585b70;
-  --accent: #89b4fa;
-  --green: #a6e3a1;
-  --yellow: #f9e2af;
-  --red: #f38ba8;
-  --blue: #89b4fa;
+  --bg: #0a0a0f; --card: #111118; --border: #1e1e2e;
+  --text: #cdd6f4; --dim: #585b70; --accent: #89b4fa;
+  --green: #a6e3a1; --yellow: #f9e2af; --red: #f38ba8;
+  --purple: #cba6f7; --teal: #94e2d5;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  min-height: 100vh;
-}
-/* ── top bar ── */
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 28px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 10;
-}
-.topbar h1 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.topbar-meta { font-size: 12px; color: var(--dim); display: flex; gap: 18px; align-items: center; }
-.pulse { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.pulse.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.pulse.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-.pulse.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
-/* ── layout ── */
-.wrap { max-width: 1240px; margin: 0 auto; padding: 24px; }
-/* ── nav tabs ── */
-.nav {
-  display: flex; gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
-}
-.nav button {
-  border: none; background: none;
-  padding: 10px 22px;
-  font-size: 13px; font-weight: 600;
-  color: var(--dim);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: .15s;
-}
-.nav button:hover { color: var(--text); }
-.nav button.on { color: var(--accent); border-bottom-color: var(--accent); }
-/* ── section hide/show ── */
-.section { display: none; }
-.section.on { display: block; }
-/* ── cards ── */
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-.card h3 { font-size: 13px; color: var(--dim); margin-bottom: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-/* ── chain grid ── */
-.chain-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
-}
-.chain-card {
-  background: #0e0e16;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-}
-.chain-card .name { font-size: 11px; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
-.chain-card .count { font-size: 28px; font-weight: 700; color: var(--text); }
-.chain-card .meta { font-size: 11px; color: var(--dim); margin-top: 6px; }
-/* ── tables ── */
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead th {
-  text-align: left; padding: 9px 12px;
-  color: var(--dim); font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
-}
-tbody td { padding: 9px 12px; border-bottom: 1px solid #181820; }
-tbody tr:hover td { background: #181820; }
-/* ── badges ── */
-.badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.badge.green { background: rgba(166,227,161,.12); color: var(--green); }
-.badge.yellow { background: rgba(249,226,175,.12); color: var(--yellow); }
-.badge.red { background: rgba(243,139,168,.12); color: var(--red); }
-.badge.blue { background: rgba(137,180,250,.12); color: var(--blue); }
-/* ── buttons ── */
-.btn {
-  padding: 7px 14px; border: none; border-radius: 7px;
-  font-size: 12px; font-weight: 600; cursor: pointer; transition: .15s;
-  display: inline-flex; align-items: center; gap: 4px;
-}
-.btn-primary { background: var(--accent); color: var(--bg); }
-.btn-primary:hover { filter: brightness(1.1); }
-.btn-danger { background: rgba(243,139,168,.15); color: var(--red); }
-.btn-danger:hover { background: rgba(243,139,168,.25); }
-.btn-warn { background: rgba(249,226,175,.15); color: var(--yellow); }
-.btn-warn:hover { background: rgba(249,226,175,.25); }
-.btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 5px; }
-/* ── forms ── */
-.form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
-.form-row > * { flex: 1; }
-.form-row > .btn { flex: none; }
-input, select {
-  background: #0e0e16; border: 1px solid var(--border); border-radius: 7px;
-  padding: 7px 10px; color: var(--text); font-size: 13px; width: 100%;
-}
-input:focus, select:focus { outline: none; border-color: var(--accent); }
-label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; }
-/* ── toast ── */
-.toast {
-  position: fixed; top: 16px; right: 16px;
-  padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-  z-index: 100; opacity: 0; transform: translateY(-16px); transition: .25s;
-  background: var(--card); border: 1px solid var(--border);
-}
-.toast.show { opacity: 1; transform: translateY(0); }
-.toast.err { border-color: var(--red); color: var(--red); }
-/* ── misc ── */
-.mono { font-family: "JetBrains Mono","SF Mono","Fira Code",monospace; font-size: 12px; }
-.ellipsis { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
-.empty { text-align: center; color: var(--dim); padding: 48px 20px; font-size: 14px; }
-.spin { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
-@keyframes spin { to { transform: rotate(360deg); } }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.topbar h1{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.topbar-meta{font-size:12px;color:var(--dim);display:flex;gap:16px;align-items:center}
+.pulse{width:7px;height:7px;border-radius:50%;display:inline-block}
+.pulse.green{background:var(--green);box-shadow:0 0 5px var(--green)}
+.pulse.yellow{background:var(--yellow);box-shadow:0 0 5px var(--yellow)}
+.pulse.red{background:var(--red);box-shadow:0 0 5px var(--red)}
+.wrap{max-width:1280px;margin:0 auto;padding:20px}
+.nav{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.nav button{border:none;background:none;padding:10px 20px;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.nav button:hover{color:var(--text)}
+.nav button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.section{display:none}
+.section.on{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.card h3{font-size:12px;color:var(--dim);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.card h3 .live{font-size:10px;color:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.chain-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px}
+.chain-card{background:#0e0e16;border:1px solid var(--border);border-radius:8px;padding:12px;position:relative;overflow:hidden}
+.chain-card.active{border-color:var(--green)}
+.chain-card.error{border-color:var(--red)}
+.chain-card .name{font-size:10px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.chain-card .count{font-size:24px;font-weight:700}
+.chain-card .lag{font-size:10px;color:var(--dim);margin-top:2px}
+.chain-card .err{font-size:10px;color:var(--red);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{text-align:left;padding:8px 10px;color:var(--dim);font-weight:600;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+tbody td{padding:8px 10px;border-bottom:1px solid #181820}
+tbody tr:hover td{background:#181820}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.badge.green{background:rgba(166,227,161,.12);color:var(--green)}
+.badge.yellow{background:rgba(249,226,175,.12);color:var(--yellow)}
+.badge.red{background:rgba(243,139,168,.12);color:var(--red)}
+.badge.blue{background:rgba(137,180,250,.12);color:var(--blue)}
+.badge.purple{background:rgba(203,166,247,.12);color:var(--purple)}
+.btn{padding:6px 12px;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:4px}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:hover{filter:brightness(1.15)}
+.btn-danger{background:rgba(243,139,168,.15);color:var(--red)}
+.btn-danger:hover{background:rgba(243,139,168,.25)}
+.btn-xs{padding:2px 7px;font-size:10px;border-radius:4px}
+.btn-sm{padding:4px 10px;font-size:11px}
+.form-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-end;flex-wrap:wrap}
+.form-row>*{min-width:120px}
+.form-row>.btn{min-width:auto;flex-shrink:0}
+input,select{background:#0e0e16;border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:10px;color:var(--dim);display:block;margin-bottom:3px}
+.toast{position:fixed;top:12px;right:12px;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:100;opacity:0;transform:translateY(-12px);transition:.25s;background:var(--card);border:1px solid var(--border);max-width:400px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{border-color:var(--red);color:var(--red)}
+.mono{font-family:"JetBrains Mono","SF Mono","Fira Code",monospace;font-size:11px}
+.ellipsis{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.empty{text-align:center;color:var(--dim);padding:40px 16px;font-size:13px}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:14px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.stat-card .label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.stat-card .value{font-size:18px;font-weight:700}
+.auto-refresh{font-size:10px;color:var(--dim);margin-left:auto}
+.pagination{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:12px}
+.tx-link{color:var(--accent);text-decoration:none;font-size:11px}
+.tx-link:hover{text-decoration:underline}
+.gauge{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.gauge-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>⛓️ PocketX Admin</h1>
+  <h1>⛓️ PocketX Collector</h1>
   <div class="topbar-meta">
     <span id="metaHealth"></span>
     <span id="metaTotal"></span>
-    <span id="metaBlock"></span>
-    <a href="/api/v2/admin/logout" style="color:var(--dim);text-decoration:none;font-size:12px;margin-left:12px;">🚪 Logout</a>
+    <span id="metaUptime"></span>
+    <span style="color:var(--dim)">|</span>
+    <span id="metaClock"></span>
   </div>
 </div>
 
 <div class="wrap">
-  <!-- ── Nav ── -->
   <div class="nav" id="nav">
     <button class="on" data-tab="dashboard">📊 Dashboard</button>
-    <button data-tab="rpc">🔗 RPC</button>
+    <button data-tab="rpc">🔗 RPC Pool</button>
     <button data-tab="events">📋 Events</button>
-    <button data-tab="datacenter">📡 Data Center</button>
-    <button data-tab="saas">🏢 SaaS</button>
+    <button data-tab="system">⚙️ System</button>
   </div>
 
-  <!-- ── Dashboard ── -->
+  <!-- Dashboard -->
   <section class="section on" id="sec-dashboard">
-    <div class="card"><h3>Chain Overview</h3><div class="chain-grid" id="chainGrid"></div></div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="card">
+      <h3>Chain Overview <span class="live">● LIVE</span><span class="auto-refresh">auto-refresh 10s</span></h3>
+      <div class="chain-grid" id="chainGrid"></div>
+    </div>
     <div class="card"><h3>Scanner Health</h3><div id="scannerTable"></div></div>
   </section>
 
-  <!-- ── RPC ── -->
+  <!-- RPC Pool -->
   <section class="section" id="sec-rpc">
     <div class="card">
       <h3>Add Endpoint</h3>
       <div class="form-row">
-        <div><label>Chain</label><select id="newChain"><option>sepolia</option><option>ethereum</option><option>polygon</option><option>arbitrum</option><option>optimism</option><option>bsc</option><option>base</option></select></div>
-        <div><label>Provider</label><select id="newProvider"><option>custom</option><option>infura</option><option>alchemy</option><option>blastapi</option><option>quicknode</option><option>public</option><option>tenderly</option><option>1rpc</option></select></div>
+        <div style="flex:0 0 110px"><label>Chain</label><select id="newChain">${['sepolia','ethereum','polygon','arbitrum','optimism','bsc','base'].map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div style="flex:0 0 120px"><label>Provider</label><select id="newProvider"><option>custom</option><option>publicnode</option><option>1rpc</option><option>infura</option><option>alchemy</option><option>blastapi</option><option>tenderly</option></select></div>
+        <div style="flex:1"><label>RPC URL</label><input id="newUrl" placeholder="https://...rpc-endpoint"></div>
         <button class="btn btn-primary" id="btnAdd">+ Add</button>
       </div>
-      <div><label>RPC URL</label><input id="newUrl" placeholder="https://...your-rpc-endpoint..."></div>
     </div>
-    <div class="card"><h3>Endpoints</h3><div id="rpcTable"></div></div>
+    <div class="card"><h3>Configured Endpoints</h3><div id="rpcTable"></div></div>
   </section>
 
-  <!-- ── Events ── -->
+  <!-- Events -->
   <section class="section" id="sec-events">
     <div class="card">
       <div class="form-row">
-        <div><label>Chain</label><select id="evtChain"><option value="">All</option></select></div>
-        <div><label>Address</label><input id="evtAddr" placeholder="0x..."></div>
+        <div style="flex:0 0 120px"><label>Chain</label><select id="evtChain"><option value="">All Chains</option></select></div>
+        <div style="flex:0 0 130px"><label>Event Type</label><select id="evtType"><option value="">All Types</option><option>transfer</option></select></div>
+        <div style="flex:1"><label>Address</label><input id="evtAddr" placeholder="0x... or partial"></div>
+        <div style="flex:0 0 80px"><label>Limit</label><select id="evtLimit"><option>25</option><option selected>50</option><option>100</option><option>200</option></select></div>
         <button class="btn btn-primary" id="btnEventsSearch">Search</button>
       </div>
     </div>
-    <div class="card"><h3>Recent Events</h3><div id="eventsTable"></div></div>
+    <div class="card"><h3>Results <span class="auto-refresh" id="evtInfo"></span></h3><div id="eventsTable"></div></div>
+    <div class="pagination" id="evtPagination"></div>
   </section>
 
-  <!-- ── Data Center ── -->
-  <section class="section" id="sec-datacenter">
-    <div class="card"><h3>Data Center Subscriptions</h3><div id="dcTable"></div></div>
-  </section>
-
-  <!-- ── SaaS (WaaS / Vault) ── -->
-  <section class="section" id="sec-saas">
-    <div class="card"><h3>Tenants</h3><div id="saasTenants"></div></div>
-    <div class="card"><h3>API Keys</h3><div id="saasApiKeys"></div></div>
+  <!-- System -->
+  <section class="section" id="sec-system">
+    <div class="card"><h3>Checkpoints</h3><div id="checkpointTable"></div></div>
+    <div class="card"><h3>Storage</h3><div id="storageInfo"></div></div>
   </section>
 </div>
 
@@ -212,254 +152,166 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 <script>
 (function(){
 'use strict';
+var API='/api/v2';
+var _evtCursor=null;
 
-var AUTH = window.__ADMIN_AUTH || '';
-var HEADERS = AUTH ? { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + AUTH } : { 'Content-Type': 'application/json' };
+function T(msg,err){var t=$('toast');t.textContent=msg;t.className='toast'+(err?' err':'')+' show';clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show')},2500)}
+function $(id){return document.getElementById(id)}
+async function api(path){var r=await fetch(API+path,{credentials:'same-origin'});if(r.status===401){location.reload();throw new Error('auth')}var j=await r.json();if(j.code!==0&&j.code!==undefined)throw new Error(j.message||'error');return j.data!==undefined?j.data:j}
 
-// ── helpers ──
-function $(id) { return document.getElementById(id); }
-function $$(sel, ctx) { return (ctx || document).querySelectorAll(sel); }
+// Nav
+$('nav').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var tab=b.dataset.tab;document.querySelectorAll('#nav button').forEach(function(x){x.classList.toggle('on',x===b)});document.querySelectorAll('.section').forEach(function(s){s.classList.toggle('on',s.id==='sec-'+tab)});if(tab==='dashboard')loadDashboard();else if(tab==='rpc')loadRpc();else if(tab==='events')loadEvents();else if(tab==='system')loadSystem()});
 
-function toast(msg, err) {
-  var t = $('toast');
-  t.textContent = msg;
-  t.className = 'toast' + (err ? ' err' : '') + ' show';
-  clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('show'); }, 2500);
-}
-
-async function api(path, method, body) {
-  var opts = { method: method || 'GET', headers: HEADERS };
-  if (body) opts.body = JSON.stringify(body);
-  var r = await fetch(path, opts);
-  if (r.status === 401) { location.reload(); throw new Error('auth'); }
-  var j = await r.json();
-  if (j.code !== 0 && j.code !== undefined) throw new Error(j.message || 'error');
-  return j.data !== undefined ? j.data : j;
-}
-
-// ── tab navigation ──
-$('nav').addEventListener('click', function(e) {
-  var btn = e.target.closest('button');
-  if (!btn) return;
-  var tab = btn.dataset.tab;
-  $$('#nav button').forEach(function(b){ b.classList.toggle('on', b === btn); });
-  $$('.section').forEach(function(s){ s.classList.toggle('on', s.id === 'sec-' + tab); });
-  if (tab === 'dashboard') loadDashboard();
-  else if (tab === 'rpc') loadRpc();
-  else if (tab === 'events') loadEvents();
-  else if (tab === 'datacenter') loadDataCenter();
-  else if (tab === 'saas') loadSaas();
-});
-
-// ── dashboard ──
-async function loadDashboard() {
-  try {
-    var d = await api('/api/v2/admin/dashboard');
-    var collectors = d.scanner && d.scanner.collectors || [];
-    var hourly = d.hourly || {};
-    var chains = ['sepolia','ethereum','polygon','arbitrum','optimism','bsc','base'];
-
-    // chain cards
-    var html = '';
-    for (var i = 0; i < chains.length; i++) {
-      var c = chains[i];
-      var s = hourly[c] || {};
-      html += '<div class="chain-card">' +
-        '<div class="name">' + c + '</div>' +
-        '<div class="count">' + (s.total || 0).toLocaleString() + '</div>' +
-        '<div class="meta">block ' + (s.latest_block || '-') + ' · cp ' + (s.checkpoint || '0') + '</div>' +
-      '</div>';
+// Dashboard
+var _dashTimer;
+async function loadDashboard(){
+  clearTimeout(_dashTimer);
+  try{
+    var d=await api('/admin/dashboard');
+    var st=d.storage||{},hr=d.hourly||{},cols=d.scanner.collectors||[];
+    // Stats row
+    $('statsRow').innerHTML='<div class="stat-card"><span class="label">Total Events</span><span class="value" style="color:var(--accent)">'+(st.totalRows||0).toLocaleString()+'</span></div>'+
+      '<div class="stat-card"><span class="label">Active Chains</span><span class="value" style="color:var(--green)">'+Object.keys(hr).filter(function(k){return hr[k].total>0}).length+'/7</span></div>'+
+      '<div class="stat-card"><span class="label">Endpoints</span><span class="value" style="color:var(--purple)">'+(d.scanner.endpoints||0)+'</span></div>'+
+      '<div class="stat-card"><span class="label">Newest Block</span><span class="value" style="color:var(--teal)">'+(st.newestBlock||0).toLocaleString()+'</span></div>';
+    // Chain cards
+    var chains=['sepolia','ethereum','polygon','arbitrum','optimism','bsc','base'],h='';
+    for(var i=0;i<chains.length;i++){
+      var c=chains[i],s=hr[c]||{},cp=s.checkpoint||0,lb=s.latest_block||0;
+      var hasData=s.total>0,hasErr=s.status==='error';
+      var cls=hasData?'active':(hasErr?'error':'');
+      h+='<div class="chain-card '+cls+'"><div class="name">'+c+'</div><div class="count">'+(s.total||0).toLocaleString()+'</div>';
+      if(lb>0)h+='<div class="lag">blk '+lb.toLocaleString()+'</div>';
+      if(cp>0)h+='<div class="lag">cp '+cp.toLocaleString()+'</div>';
+      h+='<div class="gauge"><div class="gauge-fill" style="width:'+(hasData?100:0)+'%"></div></div></div>';
     }
-    $('chainGrid').innerHTML = html;
-
-    // scanner table
-    var scanHtml = '<table><thead><tr><th>Chain</th><th>Status</th><th>Block</th><th>Error</th></tr></thead><tbody>';
-    for (var i = 0; i < collectors.length; i++) {
-      var co = collectors[i];
-      var st = co.status === 'scanning' ? 'green' : (co.status === 'idle' ? 'yellow' : 'red');
-      var err = co.error || '—';
-      if (err.length > 90) err = err.slice(0, 90) + '…';
-      scanHtml += '<tr>' +
-        '<td><strong>' + co.chain + '</strong></td>' +
-        '<td><span class="badge ' + st + '">' + co.status + '</span></td>' +
-        '<td class="mono">' + ((hourly[co.chain] && hourly[co.chain].latest_block) || '-') + '</td>' +
-        '<td class="mono" style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (co.error || '') + '">' + err + '</td>' +
-      '</tr>';
+    $('chainGrid').innerHTML=h;
+    // Scanner table
+    var sh='<table><thead><tr><th>Chain</th><th>Status</th><th>Lag (blocks)</th><th>Events/hr</th><th>Error</th></tr></thead><tbody>';
+    for(var i=0;i<cols.length;i++){
+      var co=cols[i],hly=hr[co.chain]||{};
+      var st=co.status==='scanning'?'green':(co.status==='idle'?'yellow':'red');
+      var lag=hly.latest_block&&hly.checkpoint?Math.max(0,hly.latest_block-hly.checkpoint):'-';
+      var err=co.error||'—';if(err.length>80)err=err.slice(0,80)+'…';
+      sh+='<tr><td><strong>'+co.chain+'</strong></td><td><span class="badge '+st+'">'+co.status+'</span></td><td class="mono">'+lag+'</td><td>'+(hly.total||0).toLocaleString()+'</td><td class="mono" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(co.error||'')+'">'+err+'</td></tr>';
     }
-    $('scannerTable').innerHTML = scanHtml + '</tbody></table>';
-
-    // top bar
-    var active = 0;
-    for (var i = 0; i < collectors.length; i++) { if (collectors[i].status === 'scanning') active++; }
-    $('metaHealth').innerHTML = '<span class="pulse ' + (active > 0 ? 'green' : 'yellow') + '"></span> ' + active + '/' + collectors.length + ' active';
-    $('metaTotal').textContent = (d.storage ? d.storage.totalRows.toLocaleString() : '0') + ' events';
-    $('metaBlock').textContent = 'latest #' + (d.storage ? d.storage.newestBlock : '-');
-  } catch(e) { if (e.message !== 'auth') toast('Failed: ' + e.message, true); }
+    sh+='</tbody></table>';$('scannerTable').innerHTML=sh;
+    // Top bar
+    var ac=0;for(var i=0;i<cols.length;i++){if(cols[i].status==='scanning')ac++}
+    $('metaHealth').innerHTML='<span class="pulse '+(ac>0?'green':'yellow')+'"></span> '+(st.totalRows||0)+' events';
+    $('metaTotal').textContent=Object.keys(hr).filter(function(k){return hr[k].total>0}).length+'/7 chains active';
+  }catch(e){if(e.message!=='auth')T('Dashboard: '+e.message,true)}
+  $('metaUptime').textContent=new Date().toLocaleTimeString();
+  _dashTimer=setTimeout(loadDashboard,10000);
 }
 
-// ── RPC ──
-async function loadRpc() {
-  try {
-    var eps = await api('/api/v2/admin/rpc-endpoints');
-    if (!eps.length) { $('rpcTable').innerHTML = '<div class="empty">No endpoints configured.</div>'; return; }
-    var h = '<table><thead><tr><th>Chain</th><th>Provider</th><th>URL</th><th>Status</th><th></th></tr></thead><tbody>';
-    for (var i = 0; i < eps.length; i++) {
-      var e = eps[i];
-      h += '<tr>' +
-        '<td><strong>' + e.chain + '</strong></td>' +
-        '<td><span class="badge blue">' + e.provider + '</span></td>' +
-        '<td class="mono ellipsis" title="' + e.url + '">' + e.url + '</td>' +
-        '<td><span class="badge ' + (e.enabled ? 'green' : 'red') + '">' + (e.enabled ? 'enabled' : 'disabled') + '</span></td>' +
-        '<td>' +
-          '<button class="btn btn-warn btn-xs" data-act="toggle" data-chain="' + e.chain + '" data-key="' + e.endpoint_key + '" style="margin-right:4px">' + (e.enabled ? 'Disable' : 'Enable') + '</button>' +
-          '<button class="btn btn-danger btn-xs" data-act="delete" data-chain="' + e.chain + '" data-key="' + e.endpoint_key + '">Del</button>' +
-        '</td>' +
-      '</tr>';
+// RPC
+async function loadRpc(){
+  try{
+    var eps=await api('/admin/rpc-endpoints');
+    if(!eps.length){$('rpcTable').innerHTML='<div class="empty">No endpoints configured. Add one above ↑</div>';return}
+    var h='<table><thead><tr><th>Chain</th><th>Key</th><th>Provider</th><th>URL</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    for(var i=0;i<eps.length;i++){
+      var e=eps[i];
+      h+='<tr><td><strong>'+e.chain+'</strong></td><td class="mono">'+e.endpoint_key+'</td><td><span class="badge blue">'+e.provider+'</span></td>'+
+        '<td class="mono ellipsis" title="'+e.url+'">'+e.url+'</td>'+
+        '<td><span class="badge '+(e.enabled?'green':'red')+'">'+(e.enabled?'ON':'OFF')+'</span></td>'+
+        '<td><button class="btn btn-primary btn-xs" data-act="toggle" data-chain="'+e.chain+'" data-key="'+e.endpoint_key+'" style="margin-right:4px">Toggle</button>'+
+        '<button class="btn btn-danger btn-xs" data-act="delete" data-chain="'+e.chain+'" data-key="'+e.endpoint_key+'">×</button></td></tr>';
     }
-    $('rpcTable').innerHTML = h + '</tbody></table>';
-  } catch(e) { if (e.message !== 'auth') toast('Failed: ' + e.message, true); }
+    $('rpcTable').innerHTML=h+'</tbody></table>';
+  }catch(e){if(e.message!=='auth')T('RPC: '+e.message,true)}
 }
 
-$('btnAdd').addEventListener('click', async function(){
-  var url = $('newUrl').value.trim();
-  if (!url) return toast('URL is required', true);
-  try {
-    await api('/api/v2/admin/rpc-endpoint', 'POST', {
-      chain: $('newChain').value,
-      provider: $('newProvider').value,
-      url: url
-    });
-    $('newUrl').value = '';
-    toast('Endpoint added');
+$('btnAdd').addEventListener('click',async function(){
+  var url=$('newUrl').value.trim(),chain=$('newChain').value,provider=$('newProvider').value;
+  if(!url)return T('URL required',true);
+  try{
+    await fetch(API+'/admin/rpc-endpoint',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({chain:chain,provider:provider,url:url})}).then(function(r){return r.json()});
+    $('newUrl').value='';T('Endpoint added to '+chain);
     loadRpc();
-  } catch(e) { toast(e.message, true); }
+  }catch(e){T(e.message,true)}
 });
 
-// RPC table actions via delegation
-$('rpcTable').addEventListener('click', async function(e) {
-  var btn = e.target.closest('[data-act]');
-  if (!btn) return;
-  var chain = btn.dataset.chain, key = btn.dataset.key;
-  try {
-    if (btn.dataset.act === 'delete') {
-      if (!confirm('Delete ' + chain + '/' + key + '?')) return;
-      await api('/api/v2/admin/rpc-endpoint/' + chain + '/' + key, 'DELETE');
-      toast('Deleted');
-    } else if (btn.dataset.act === 'toggle') {
-      await api('/api/v2/admin/rpc-endpoint/' + chain + '/' + key + '/toggle', 'PATCH');
+$('rpcTable').addEventListener('click',async function(e){
+  var btn=e.target.closest('[data-act]');if(!btn)return;
+  var ch=btn.dataset.chain,key=btn.dataset.key;
+  try{
+    if(btn.dataset.act==='delete'){
+      if(!confirm('Delete '+ch+'/'+key+'?'))return;
+      await fetch(API+'/admin/rpc-endpoint/'+ch+'/'+key,{method:'DELETE',credentials:'same-origin'});
+      T('Deleted '+ch+'/'+key);
+    }else{
+      await fetch(API+'/admin/rpc-endpoint/'+ch+'/'+key+'/toggle',{method:'PATCH',credentials:'same-origin'});
     }
     loadRpc();
-  } catch(e) { toast(e.message, true); }
+  }catch(e){T(e.message,true)}
 });
 
-// ── Events ──
-async function loadEvents() {
-  try {
-    var p = new URLSearchParams({ page_size: '50' });
-    if ($('evtChain').value) p.set('chain', $('evtChain').value);
-    if ($('evtAddr').value.trim()) p.set('address', $('evtAddr').value.trim());
-    var d = await api('/api/v2/data/events?' + p.toString());
-
-    if (!d.data || !d.data.length) { $('eventsTable').innerHTML = '<div class="empty">No events found.</div>'; return; }
-
-    // Populate chain filter once
-    if ($$('#evtChain option').length === 1) {
-      var seen = {};
-      for (var i = 0; i < d.data.length; i++) { seen[d.data[i].chain] = true; }
-      Object.keys(seen).sort().forEach(function(c){
-        var o = document.createElement('option');
-        o.value = c; o.textContent = c;
-        $('evtChain').appendChild(o);
-      });
+// Events
+async function loadEvents(cursor){
+  try{
+    var p=new URLSearchParams({page_size:$('evtLimit').value||'50'});
+    if($('evtChain').value)p.set('chain',$('evtChain').value);
+    if($('evtType').value)p.set('event_type',$('evtType').value);
+    if($('evtAddr').value.trim())p.set('address',$('evtAddr').value.trim());
+    if(cursor)p.set('page_token',cursor);
+    var d=await api('/data/events?'+p.toString());
+    if(!d.data||!d.data.length){$('eventsTable').innerHTML='<div class="empty">No events found</div>';$('evtPagination').innerHTML='';return}
+    // Populate chains
+    if(document.querySelector('#evtChain option').length===1){
+      var chains=await api('/data/stats');
+      (chains.chains||[]).forEach(function(c){var o=document.createElement('option');o.value=c.chain;o.textContent=c.chain+' ('+c.event_count+')';$('evtChain').appendChild(o)});
     }
-
-    var h = '<table><thead><tr><th>Chain</th><th>Block</th><th>Event</th><th>From</th><th>To</th><th>Amount</th></tr></thead><tbody>';
-    for (var i = 0; i < d.data.length; i++) {
-      var e = d.data[i];
-      var from = (e.from_address || '—').slice(0,10) + '…';
-      var to = (e.to_address || '—').slice(0,10) + '…';
-      h += '<tr>' +
-        '<td><span class="badge blue">' + e.chain + '</span></td>' +
-        '<td class="mono">' + e.block_number + '</td>' +
-        '<td>' + (e.event_type || '—') + '</td>' +
-        '<td class="mono" title="' + (e.from_address || '') + '">' + from + '</td>' +
-        '<td class="mono" title="' + (e.to_address || '') + '">' + to + '</td>' +
-        '<td class="mono">' + (e.amount || '0') + (e.token_symbol ? ' ' + e.token_symbol : '') + '</td>' +
-      '</tr>';
+    $('evtInfo').textContent=d.data.length+' results';
+    var h='<table><thead><tr><th>Chain</th><th>Block</th><th>Type</th><th>From</th><th>To</th><th>Amount</th><th>Time</th></tr></thead><tbody>';
+    for(var i=0;i<d.data.length;i++){
+      var e=d.data[i];
+      var from=(e.from_address||'—');if(from.length>12)from=from.slice(0,6)+'…'+from.slice(-4);
+      var to=(e.to_address||'—');if(to.length>12)to=to.slice(0,6)+'…'+to.slice(-4);
+      var amt=e.amount?(Number(e.amount).toLocaleString(undefined,{maximumFractionDigits:6})):'0';
+      var time=new Date(e.created_at);
+      h+='<tr><td><span class="badge purple">'+e.chain+'</span></td><td class="mono">'+e.block_number.toLocaleString()+'</td><td>'+e.event_type+'</td>'+
+        '<td class="mono" title="'+e.from_address+'">'+from+'</td><td class="mono" title="'+e.to_address+'">'+to+'</td>'+
+        '<td class="mono">'+amt+' '+(e.token_symbol||'')+'</td><td style="font-size:10px;color:var(--dim)">'+time.toISOString().slice(11,19)+'</td></tr>';
     }
-    $('eventsTable').innerHTML = h + '</tbody></table>';
-  } catch(e) { if (e.message !== 'auth') toast('Failed: ' + e.message, true); }
+    $('eventsTable').innerHTML=h+'</tbody></table>';
+    // Pagination
+    _evtCursor=d.next_page_token;
+    $('evtPagination').innerHTML=(d.next_page_token?'<button class="btn btn-primary btn-sm" onclick="loadEvents(\''+d.next_page_token+'\')">Next →</button>':'<span style="color:var(--dim);font-size:12px">End of results</span>');
+  }catch(e){if(e.message!=='auth')T('Events: '+e.message,true)}
 }
 
-$('btnEventsSearch').addEventListener('click', loadEvents);
-$('evtAddr').addEventListener('keydown', function(e) { if (e.key === 'Enter') loadEvents(); });
+$('btnEventsSearch').addEventListener('click',function(){loadEvents()});
+$('evtAddr').addEventListener('keydown',function(e){if(e.key==='Enter')loadEvents()});
 
-// ── Data Center ──
-async function loadDataCenter() {
-  try {
-    var d = await api('/api/v2/admin/dc-subscriptions');
-    if (!d.items || !d.items.length) { $('dcTable').innerHTML = '<div class="empty">No Data Center subscriptions found.</div>'; return; }
-    var h = '<table><thead><tr><th>Tenant</th><th>Plan</th><th>API Key</th><th>Created</th></tr></thead><tbody>';
-    for (var i = 0; i < d.items.length; i++) {
-      var r = d.items[i];
-      h += '<tr>' +
-        '<td><strong>' + (r.name || r.tenant_id || '—') + '</strong></td>' +
-        '<td><span class="badge ' + (r.data_plan_id ? 'green' : 'red') + '">' + (r.data_plan_id || 'none') + '</span></td>' +
-        '<td class="mono">' + (r.dc_api_key ? r.dc_api_key.slice(0,16) + '…' : '—') + '</td>' +
-        '<td>' + (r.dc_api_key_created_at ? new Date(r.dc_api_key_created_at).toLocaleString() : '—') + '</td>' +
-      '</tr>';
+// System
+async function loadSystem(){
+  try{
+    var ch=await api('/data/checkpoints');
+    var h='<table><thead><tr><th>Chain</th><th>Collector</th><th>Last Block</th><th>Last Fetch</th><th>Status</th><th>Error</th></tr></thead><tbody>';
+    for(var i=0;i<ch.length;i++){
+      var c=ch[i];
+      h+='<tr><td><strong>'+c.chain+'</strong></td><td>'+c.collector_name+'</td><td class="mono">'+(c.last_block||0).toLocaleString()+'</td>'+
+        '<td style="font-size:10px">'+(c.last_fetch_at?new Date(c.last_fetch_at).toISOString().slice(0,19):'—')+'</td>'+
+        '<td><span class="badge '+(c.status==='running'?'green':'red')+'">'+c.status+'</span></td>'+
+        '<td class="mono" style="max-width:250px;overflow:hidden;text-overflow:ellipsis">'+(c.error_message||'—')+'</td></tr>';
     }
-    $('dcTable').innerHTML = h + '</tbody></table>';
-  } catch(e) { if (e.message !== 'auth') toast('Failed: ' + e.message, true); }
+    $('checkpointTable').innerHTML=h+'</tbody></table>';
+    var st=await api('/data/stats');
+    $('storageInfo').innerHTML='<div style="display:flex;gap:24px">'+
+      '<div><span style="color:var(--dim)">Total Events:</span> <strong>'+(st.storage?st.storage.totalRows.toLocaleString():'0')+'</strong></div>'+
+      '<div><span style="color:var(--dim)">Newest Block:</span> <strong>'+(st.storage?st.storage.newestBlock:0).toLocaleString()+'</strong></div>'+
+      '<div><span style="color:var(--dim)">Retention:</span> <strong>72 hours</strong></div></div>';
+  }catch(e){if(e.message!=='auth')T('System: '+e.message,true)}
 }
 
-// ── SaaS (WaaS / Vault) ──
-async function loadSaas() {
-  try {
-    var tenants = await api('/api/v2/admin/saas-overview');
-    // Tenants table
-    var h = '<table><thead><tr><th>Tenant Name</th><th>Status</th><th>Hot Wallet</th><th>Data Plan</th><th>Created</th></tr></thead><tbody>';
-    if (!tenants.items || !tenants.items.length) {
-      h += '<tr><td colspan="5"><div class="empty">No tenants.</div></td></tr>';
-    } else {
-      for (var i = 0; i < tenants.items.length; i++) {
-        var t = tenants.items[i];
-        h += '<tr>' +
-          '<td><strong>' + t.name + '</strong></td>' +
-          '<td><span class="badge ' + (t.status === 'active' ? 'green' : 'red') + '">' + t.status + '</span></td>' +
-          '<td class="mono">' + (t.hot_wallet_address ? t.hot_wallet_address.slice(0,10) + '…' : '—') + '</td>' +
-          '<td><span class="badge blue">' + (t.data_plan_id || '—') + '</span></td>' +
-          '<td>' + new Date(t.created_at).toLocaleDateString() + '</td>' +
-        '</tr>';
-      }
-    }
-    h += '</tbody></table>';
-    $('saasTenants').innerHTML = h;
+// Clock
+setInterval(function(){$('metaClock').textContent=new Date().toLocaleTimeString()},1000);
 
-    // API keys summary
-    var keys = await api('/api/v2/admin/api-keys');
-    var kh = '<table><thead><tr><th>Key Hash</th><th>Enabled</th><th>Last Used</th><th>Expires</th></tr></thead><tbody>';
-    if (!keys || !keys.length) {
-      kh += '<tr><td colspan="4"><div class="empty">No API keys.</div></td></tr>';
-    } else {
-      for (var i = 0; i < keys.length; i++) {
-        var k = keys[i];
-        kh += '<tr>' +
-          '<td class="mono">' + (k.key_hash || '—').slice(0,16) + '…</td>' +
-          '<td><span class="badge ' + (k.enabled ? 'green' : 'red') + '">' + (k.enabled ? 'yes' : 'no') + '</span></td>' +
-          '<td>' + (k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'never') + '</td>' +
-          '<td>' + (k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'never') + '</td>' +
-        '</tr>';
-      }
-    }
-    kh += '</tbody></table>';
-    $('saasApiKeys').innerHTML = kh;
-  } catch(e) { if (e.message !== 'auth') toast('Failed: ' + e.message, true); }
-}
-
-// ── boot ──
+// Boot
 loadDashboard();
-setInterval(loadDashboard, 15000);
+setInterval(function(){if(document.querySelector('#sec-dashboard.on'))loadDashboard()},10000);
 })();
 </script>
 </body>

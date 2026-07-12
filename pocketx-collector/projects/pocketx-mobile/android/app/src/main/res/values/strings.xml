@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PocketX</string>
+    <string name="login_title">PocketX Wallet</string>
+    <string name="email_label">Email</string>
+    <string name="send_code">Send Code</string>
+    <string name="verify_code_label">Verification Code</string>
+    <string name="login">Login</string>
+    <string name="wallet_title">Wallet</string>
+    <string name="send">Send</string>
+    <string name="receive">Receive</string>
+    <string name="safe">Safe Multi-Sig</string>
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="logout">Logout</string>
+</resources>

@@ -6,15 +6,8 @@ import { config } from '../config';
  * Returns 401 with WWW-Authenticate header on failure.
  */
 export function adminBasicAuth(req: Request, res: Response, next: NextFunction): void {
-  // Admin API routes: check cookie first (set after Basic Auth on /admin page)
-  if (req.originalUrl.startsWith('/api/v2/admin')) {
-    if (req.cookies?.admin_session === 'valid') {
-      return next();
-    }
-  }
-
-  // Skip auth for non-admin API routes (they use JWT)
-  if (req.originalUrl.startsWith('/api/') && !req.originalUrl.startsWith('/api/v2/admin')) {
+  // Skip auth for API routes (they use JWT)
+  if (req.path.startsWith('/api/')) {
     return next();
   }
 

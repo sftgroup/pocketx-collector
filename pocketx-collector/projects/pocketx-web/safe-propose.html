@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketX Safe — Propose Transaction</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:#6366F1;--brand-secondary:#8B5CF5;--brand-gradient:linear-gradient(135deg,#6366F1,#8B5CF5);
+  --surface-bg:#07070F;--surface-card:#111122;--surface-hover:#181830;--surface-input:#151528;
+  --text-primary:#F0F0F5;--text-secondary:#8888AA;--text-tertiary:#555577;--text-brand:#818CF8;
+  --success:#34D399;--warning:#FBBF24;--error:#F87171;--info:#60A5FA;
+  --border:#1E1E3A;--radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-xl:24px;--radius-full:9999px;
+  --sidebar-w:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--surface-bg);color:var(--text-primary);display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);height:100vh;position:fixed;left:0;top:0;background:rgba(17,17,34,.80);backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 16px;z-index:50}
+.sidebar-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;padding:8px 12px;margin-bottom:24px}
+.sidebar-logo-icon{width:32px;height:32px;background:var(--brand-gradient);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white}
+.sidebar-nav{flex:1;display:flex;flex-direction:column;gap:4px}
+.sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);font-size:14px;font-weight:500;color:var(--text-secondary);transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.sidebar-item:hover{background:var(--surface-hover);color:var(--text-primary)}
+.sidebar-item.active{background:rgba(99,102,241,.12);color:var(--text-brand)}
+.sidebar-item-icon{width:20px;text-align:center;font-size:15px}
+.sidebar-divider{height:1px;background:var(--border);margin:12px 0}
+.sidebar-footer{border-top:1px solid var(--border);padding-top:12px}
+.sidebar-status{display:flex;align-items:center;gap:6px;padding:4px 12px;font-size:11px;color:var(--text-secondary)}
+.sidebar-dot{width:6px;height:6px;background:var(--success);border-radius:50%}
+.main{margin-left:var(--sidebar-w);flex:1;padding:28px 36px;max-width:calc(100vw - var(--sidebar-w))}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.topbar-left h1{font-size:22px;font-weight:700}
+.topbar-left p{font-size:12px;color:var(--text-secondary)}
+.back-link{font-size:12px;color:var(--text-brand);cursor:pointer;display:flex;align-items:center;gap:4px}
+.back-link:hover{text-decoration:underline}
+
+.btn{padding:9px 20px;border-radius:var(--radius-full);font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-primary{background:var(--brand-gradient);color:white}
+.btn-primary:hover{box-shadow:0 0 20px rgba(99,102,241,.35)}
+.btn-outline{background:transparent;color:var(--text-primary);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--brand-primary)}
+.btn-success{background:var(--success);color:#07070F}
+.btn-success:hover{box-shadow:0 0 20px rgba(52,211,153,.35)}
+.btn-danger{background:transparent;border:1px solid var(--error);color:var(--error)}
+.btn-danger:hover{background:rgba(248,113,113,.08)}
+
+.layout-2col{display:grid;grid-template-columns:1fr 380px;gap:24px}
+.panel{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:20px}
+.panel-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-body{padding:20px}
+.panel-title{font-size:14px;font-weight:600}
+
+/* Stepper */
+.stepper{display:flex;align-items:center;margin-bottom:32px;padding:0 12px}
+.step{display:flex;align-items:center;gap:8px;flex:1}
+.step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid var(--border);color:var(--text-tertiary)}
+.step.active .step-num{border-color:var(--brand-primary);color:var(--text-brand);background:rgba(99,102,241,.12)}
+.step.done .step-num{border-color:var(--success);color:var(--success);background:rgba(52,211,153,.12)}
+.step-label{font-size:12px;font-weight:600;color:var(--text-tertiary)}
+.step.active .step-label{color:var(--text-primary)}
+.step.done .step-label{color:var(--success)}
+.step-line{flex:1;height:2px;background:var(--border);margin:0 12px}
+.step-line.done{background:var(--success)}
+
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-input{width:100%;padding:12px 14px;background:var(--surface-input);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:13px;outline:none;font-family:'JetBrains Mono',monospace}
+.form-input:focus{border-color:var(--brand-primary)}
+.form-input.normal{font-family:'Inter',sans-serif}
+.info-box{background:var(--surface-input);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px}
+.info-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px}
+.info-label{color:var(--text-secondary)}
+.info-value{font-weight:500;font-family:'JetBrains Mono',monospace;font-size:11px}
+
+/* Signature Progress */
+.sig-progress{display:flex;align-items:center;gap:6px;margin-bottom:16px}
+.sig-bar{flex:1;height:8px;background:var(--surface-input);border-radius:var(--radius-full);overflow:hidden}
+.sig-bar-fill{height:100%;background:var(--brand-gradient);border-radius:var(--radius-full);transition:width .5s}
+.sig-label{font-size:13px;font-weight:600}
+
+/* Signature Card */
+.sig-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:8px}
+.sig-card.signed{border-color:rgba(52,211,153,.30);background:rgba(52,211,153,.04)}
+.sig-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sig-owner{font-size:13px;font-weight:600}
+.sig-addr{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-tertiary)}
+.sig-status{font-size:10px;font-weight:600;display:flex;align-items:center;gap:3px}
+.sig-status.signed{color:var(--success)}
+.sig-status.pending{color:var(--warning)}
+
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:16px}.layout-2col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="sidebar-logo-icon">⚡</div>PocketX</div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item"><span class="sidebar-item-icon">📊</span> Dashboard</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">💸</span> Send</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">📥</span> Receive</button>
+    <button class="sidebar-item active"><span class="sidebar-item-icon">🛡️</span> Safe</button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-item"><span class="sidebar-item-icon">📋</span> History</button>
+    <button class="sidebar-item"><span class="sidebar-item-icon">⚙️</span> Settings</button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-status"><div class="sidebar-dot"></div>Sepolia Testnet</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-tertiary);padding:4px 12px;">0x0103...925a3B</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="back-link">← Back to Safe Detail</div>
+      <h1 style="margin-top:4px;">Propose Transaction</h1>
+      <p>Treasury Safe · 0xbF9c77478b81818Ee44D07D0cF3986168c6b77ea</p>
+    </div>
+    <button class="btn btn-outline">Save Draft</button>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step active"><div class="step-num">1</div><div class="step-label">Propose</div></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-num">2</div><div class="step-label">Collect Sigs</div></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-num">3</div><div class="step-label">Execute</div></div>
+  </div>
+
+  <div class="layout-2col">
+    <!-- Proposal Form -->
+    <div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">📝 Transaction Details</span></div>
+        <div class="panel-body">
+          <div class="form-group">
+            <div class="form-label">Type</div>
+            <select class="form-input" style="font-family:'Inter',sans-serif;cursor:pointer;">
+              <option>Transfer ETH</option>
+              <option>Transfer ERC-20 Token</option>
+              <option>Contract Interaction</option>
+              <option>Add Owner</option>
+              <option>Remove Owner</option>
+              <option>Change Threshold</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Recipient Address</div>
+            <input class="form-input" type="text" placeholder="0x..." value="0x0103ACB65c3e8E629d70569834801BD98C925a3B">
+          </div>
+          <div class="form-row" style="display:flex;gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <div class="form-label">Amount</div>
+              <input class="form-input normal" type="text" value="0.5" style="font-size:18px;font-weight:700;">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <div class="form-label">Asset</div>
+              <select class="form-input" style="font-family:'Inter',sans-serif;cursor:pointer;"><option>ETH</option><option>USDC</option><option>USDT</option></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Memo (optional)</div>
+            <input class="form-input normal" type="text" placeholder="Payment for Q3 services">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">ℹ️ Transaction Summary</span></div>
+        <div class="panel-body">
+          <div class="info-box">
+            <div class="info-row"><span class="info-label">Safe Address</span><span class="info-value">0xbF9c...77ea</span></div>
+            <div class="info-row"><span class="info-label">Network</span><span class="info-value">Sepolia (11155111)</span></div>
+            <div class="info-row"><span class="info-label">To</span><span class="info-value">0x0103...925a3B</span></div>
+            <div class="info-row"><span class="info-label">Amount</span><span class="info-value">0.5 ETH</span></div>
+            <div class="info-row"><span class="info-label">Threshold Required</span><span class="info-value">2 of 3 signatures</span></div>
+            <div class="info-row"><span class="info-label">Nonce</span><span class="info-value">4</span></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:16px;justify-content:center;padding:14px;">
+            Sign & Submit Proposal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Signature Status -->
+    <div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">✍️ Signature Progress</span></div>
+        <div class="panel-body">
+          <div class="sig-progress">
+            <span class="sig-label">1/3</span>
+            <div class="sig-bar"><div class="sig-bar-fill" style="width:33%"></div></div>
+            <span class="sig-label">2 needed</span>
+          </div>
+
+          <div class="sig-card signed">
+            <div class="sig-card-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:24px;height:24px;background:var(--brand-gradient);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;">S</div>
+                <div class="sig-owner">stevenwang</div>
+              </div>
+              <span class="sig-status signed">✓ Signed</span>
+            </div>
+            <div class="sig-addr">0x0103ACB65c3e8E629d70569834801BD98C925a3B</div>
+          </div>
+
+          <div class="sig-card">
+            <div class="sig-card-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:24px;height:24px;background:linear-gradient(135deg,#8B5CF5,#A78BFA);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;">A</div>
+                <div class="sig-owner">alice.eth</div>
+              </div>
+              <span class="sig-status pending">⏳ Waiting</span>
+            </div>
+            <div class="sig-addr">0x84CA376e60440a76837a5390fA0518cdED448324</div>
+          </div>
+
+          <div class="sig-card">
+            <div class="sig-card-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:24px;height:24px;background:linear-gradient(135deg,#F59E0B,#FBBF24);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#07070F;">B</div>
+                <div class="sig-owner">bob.eth</div>
+              </div>
+              <span class="sig-status pending">⏳ Waiting</span>
+            </div>
+            <div class="sig-addr">0x7d5F77b30b4135AEe4b1e849a1c76c33dCFA2E00</div>
+          </div>
+
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">Need 1 more signature to execute</div>
+            <button class="btn btn-outline" style="width:100%;justify-content:center;font-size:12px;">📋 Copy Share Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Approvals (sidebar) -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">⏳ Pending (You)</span></div>
+        <div class="panel-body">
+          <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;">
+            <div style="font-weight:600;margin-bottom:3px;">Proposal #4 — Send 0.5 ETH</div>
+            <div style="color:var(--text-tertiary);">Safe: Treasury · 2/3 · Created now</div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button class="btn btn-success" style="flex:1;padding:8px 0;font-size:11px;">✓ Approve</button>
+              <button class="btn btn-danger" style="flex:1;padding:8px 0;font-size:11px;">✕ Reject</button>
+            </div>
+          </div>
+          <div style="padding:10px 0;font-size:12px;opacity:.6;">
+            <div style="font-weight:600;margin-bottom:3px;">Proposal #3 — Add Owner alice.eth</div>
+            <div style="color:var(--text-tertiary);">Safe: Treasury · Executed Jul 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
