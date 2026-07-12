@@ -310,11 +310,11 @@ router.get('/sweeps', requireAdmin, asyncHandler(async (req, _res) => {
 router.get('/dc-subscriptions', requireAdmin, asyncHandler(async (_req, res) => {
   const { rows } = await pool.query(`
     SELECT t.name, t.id as tenant_id, t.status,
-           COALESCE(dsp.plan_id, 'N/A') as data_plan_id,
-           dsp.dc_api_key, dsp.dc_api_key_created_at
+           COALESCE(t.data_plan_id, 'N/A') as data_plan_id,
+           t.dc_api_key, t.dc_api_key_created_at
     FROM tenants t
-    LEFT JOIN data_subscription_plans dsp ON dsp.tenant_id = t.id
-    ORDER BY dsp.dc_api_key_created_at DESC NULLS LAST
+    WHERE t.data_plan_id IS NOT NULL
+    ORDER BY t.dc_api_key_created_at DESC NULLS LAST
   `);
   res.json(apiResponse(rows));
 }));
